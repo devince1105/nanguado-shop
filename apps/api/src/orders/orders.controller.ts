@@ -10,22 +10,10 @@ import {
 import { OrdersService, type CreateOrderDto } from "./orders.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
-import * as jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "nanguado-pumpkin-shop-jwt-secret-key-12345";
+import { getUserIdFromAuthHeader } from "../auth/jwt.util";
 
 function getUserIdFromRequest(req: any): string | undefined {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split(" ")[1];
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-      return decoded.userId;
-    } catch {
-      // 憑證錯誤或過期，當作訪客處理
-    }
-  }
-  return undefined;
+  return getUserIdFromAuthHeader(req.headers.authorization);
 }
 
 @Controller("orders")

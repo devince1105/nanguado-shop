@@ -10,13 +10,22 @@ import {
   products,
   type SelectedVariant,
 } from "@repo/db";
-import { eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { CartService } from "../cart/cart.service";
 import { EcpayPaymentService } from "../ecpay/ecpay-payment.service";
 
 /** 滿 NT$1,000 免運，未滿收 NT$60 */
 const FREE_SHIPPING_THRESHOLD = 1000;
 const SHIPPING_FEE = 60;
+
+export const ORDER_STATUSES = [
+  "pending",
+  "paid",
+  "shipped",
+  "completed",
+  "cancelled",
+] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export function calcShippingFee(subtotal: number): number {
   return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
@@ -218,5 +227,93 @@ export class OrdersService {
 
       return enhancedOrder;
     });
+  }
+
+  // ---------- 後台管理 ----------
+
+  /** 後台訂單列表：分頁 + 狀態篩選 */
+  async adminList(query: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const db = getDb();
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+
+    const conditions: SQL[] = [];
+    if (query.status) {
+      if (!ORDER_STATUSES.includes(query.status as OrderStatus)) {
+        throw new BadRequestException(`無效的訂單狀態：${query.status}`);
+      }
+      conditions.push(eq(orders.status, query.status));
+    }
+    const where = conditions.length ? and(...conditions) : undefined;
+
+    const [rows, [{ total }]] = await Promise.all([
+      db.query.orders.findMany({
+        where,
+        with: { items: true },
+        orderBy: desc(orders.createdAt),
+        limit,
+        offset: (page - 1) * limit,
+      }),
+      db.select({ total: count() }).from(orders).where(where),
+    ]);
+
+    const items = rows.map((order) => {
+      const subtotal = order.items.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0,
+      );
+      return {
+        ...order,
+        subtotal,
+        shippingFee: Math.max(0, order.totalAmount - subtotal),
+      };
+    });
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  /** 更新訂單狀態；標記為 paid 時同步補上付款註記 */
+  async updateStatus(id: string, status: string) {
+    if (!ORDER_STATUSES.includes(status as OrderStatus)) {
+      throw new BadRequestException(
+        `無效的訂單狀態：${status}（允許：${ORDER_STATUSES.join(" / ")}）`,
+      );
+    }
+
+    const db = getDb();
+    const existing = await db.query.orders.findFirst({
+      where: eq(orders.id, id),
+    });
+    if (!existing) {
+      throw new NotFoundException(`找不到訂單：${id}`);
+    }
+
+    await db
+      .update(orders)
+      .set({
+        status,
+        updatedAt: new Date(),
+        ...(status === "paid" &&
+          !existing.isPaid && {
+            isPaid: true,
+            paidAt: new Date(),
+            paymentType: existing.paymentType ?? "Manual",
+          }),
+      })
+      .where(eq(orders.id, id));
+
+    return this.getById(id);
   }
 }

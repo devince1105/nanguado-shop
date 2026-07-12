@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { CartDrawer } from "@/components/layout/CartDrawer";
-import { SearchOverlay } from "@/components/layout/SearchOverlay";
 import { Toaster } from "@/components/ui/Toaster";
 
 export const metadata: Metadata = {
@@ -21,11 +17,7 @@ export default function RootLayout({
   return (
     <html lang="zh-Hant-TW">
       <body className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <CartDrawer />
-        <SearchOverlay />
+        {children}
         <Toaster />
       </body>
     </html>

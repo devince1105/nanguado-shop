@@ -116,9 +116,15 @@ importers:
         specifier: ^0.44.2
         version: 0.44.7(@neondatabase/serverless@1.1.0)
     devDependencies:
+      '@types/bcryptjs':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
       dotenv:
         specifier: ^16.5.0
         version: 16.6.1

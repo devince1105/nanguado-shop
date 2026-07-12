@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "push": "drizzle-kit push",
     "seed": "tsx src/seed.ts",
+    "seed:admin": "tsx src/seed-admin.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,7 +16,9 @@
     "drizzle-orm": "^0.44.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.15.0",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
     "tsx": "^4.19.4",

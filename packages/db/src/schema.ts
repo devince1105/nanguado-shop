@@ -64,6 +64,8 @@ export const users = pgTable("users", {
     .$defaultFn(() => randomUUID()),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  /** customer / admin */
+  role: varchar("role", { length: 20 }).notNull().default("customer"),
   name: varchar("name", { length: 120 }),
   phone: varchar("phone", { length: 30 }),
   address: text("address"),

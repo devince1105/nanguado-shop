@@ -1,7 +1,6 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import { Controller, Get, Param, Query } from "@nestjs/common";
 import {
   ProductsService,
-  type CreateProductDto,
   type ListProductsQuery,
 } from "./products.service";
 
@@ -29,10 +28,5 @@ export class ProductsController {
   @Get(":slug")
   getBySlug(@Param("slug") slug: string) {
     return this.productsService.getBySlug(slug);
-  }
-
-  @Post()
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
   }
 }

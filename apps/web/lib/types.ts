@@ -112,5 +112,17 @@ export type User = {
   name: string;
   phone: string | null;
   address: string | null;
+  /** customer / admin */
+  role: string;
+};
+
+export type OrderListResponse = {
+  items: Order[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 

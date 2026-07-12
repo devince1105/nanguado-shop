@@ -6,10 +6,8 @@ import {
 import { getDb, users } from "@repo/db";
 import { eq } from "drizzle-orm";
 import * as bcrypt from "bcryptjs";
-import * as jwt from "jsonwebtoken";
 import { CartService } from "../cart/cart.service";
-
-const JWT_SECRET = process.env.JWT_SECRET || "nanguado-pumpkin-shop-jwt-secret-key-12345";
+import { signAuthToken } from "./jwt.util";
 
 @Injectable()
 export class AuthService {
@@ -42,7 +40,7 @@ export class AuthService {
       .returning();
 
     // Generate token
-    const token = this.generateToken(user.id, user.email);
+    const token = this.generateToken(user.id, user.email, user.role);
 
     return {
       token,
@@ -52,6 +50,7 @@ export class AuthService {
         name: user.name,
         phone: user.phone,
         address: user.address,
+        role: user.role,
       },
     };
   }
@@ -85,7 +84,7 @@ export class AuthService {
       }
     }
 
-    const token = this.generateToken(user.id, user.email);
+    const token = this.generateToken(user.id, user.email, user.role);
 
     return {
       token,
@@ -95,6 +94,7 @@ export class AuthService {
         name: user.name,
         phone: user.phone,
         address: user.address,
+        role: user.role,
       },
     };
   }
@@ -113,10 +113,11 @@ export class AuthService {
       name: user.name,
       phone: user.phone,
       address: user.address,
+      role: user.role,
     };
   }
 
-  private generateToken(userId: string, email: string): string {
-    return jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "7d" });
+  private generateToken(userId: string, email: string, role: string): string {
+    return signAuthToken({ userId, email, role });
   }
 }
