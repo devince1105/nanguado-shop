@@ -1,0 +1,36 @@
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import {
+  ProductsService,
+  type CreateProductDto,
+  type ListProductsQuery,
+} from "./products.service";
+
+@Controller("products")
+export class ProductsController {
+  constructor(private readonly productsService: ProductsService) {}
+
+  @Get()
+  list(
+    @Query("category") category?: string,
+    @Query("sort") sort?: ListProductsQuery["sort"],
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.productsService.list({
+      category,
+      sort,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get(":slug")
+  getBySlug(@Param("slug") slug: string) {
+    return this.productsService.getBySlug(slug);
+  }
+
+  @Post()
+  create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
+  }
+}
