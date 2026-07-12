@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useCartStore, selectItemCount } from "@/lib/store/cart";
+import { useUiStore } from "@/lib/store/ui";
 
 const NAV_LINKS = [
   { href: "/", label: "首頁" },
@@ -13,16 +15,61 @@ const NAV_LINKS = [
 ];
 
 export function Header() {
+  const pathname = usePathname();
   const itemCount = useCartStore(selectItemCount);
   const fetchCart = useCartStore((s) => s.fetchCart);
+  const openCart = useUiStore((s) => s.openCart);
+  const openSearch = useUiStore((s) => s.openSearch);
+  const isMobileMenuOpen = useUiStore((s) => s.isMobileMenuOpen);
+  const toggleMobileMenu = useUiStore((s) => s.toggleMobileMenu);
+  const closeMobileMenu = useUiStore((s) => s.closeMobileMenu);
+
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     fetchCart().catch(() => {});
   }, [fetchCart]);
 
+  // 捲動時加上背景陰影
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // 切換頁面時收合手機選單
+  useEffect(() => {
+    closeMobileMenu();
+  }, [pathname, closeMobileMenu]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-neutral-100 bg-white/95 backdrop-blur">
+    <header
+      className={`sticky top-0 z-40 border-b bg-white/95 backdrop-blur transition-shadow duration-300 ${
+        scrolled
+          ? "border-transparent shadow-md shadow-neutral-900/5"
+          : "border-neutral-100"
+      }`}
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+        {/* 手機：漢堡選單 */}
+        <button
+          onClick={toggleMobileMenu}
+          aria-label={isMobileMenuOpen ? "關閉選單" : "開啟選單"}
+          aria-expanded={isMobileMenuOpen}
+          className="rounded-full p-2 text-neutral-600 transition-colors hover:bg-neutral-100 md:hidden"
+        >
+          {isMobileMenuOpen ? (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          )}
+        </button>
+
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <span className="text-2xl">🎃</span>
@@ -37,7 +84,9 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-neutral-600 transition-colors hover:text-pumpkin-600"
+              className={`text-sm font-medium transition-colors hover:text-pumpkin-600 ${
+                pathname === link.href ? "text-pumpkin-600" : "text-neutral-600"
+              }`}
             >
               {link.label}
             </Link>
@@ -46,37 +95,25 @@ export function Header() {
 
         {/* 右側圖示 */}
         <div className="flex items-center gap-1">
-          <Link
-            href="/products"
+          <button
+            onClick={openSearch}
             aria-label="搜尋商品"
             className="rounded-full p-2 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="m21 21-4.34-4.34M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
               />
             </svg>
-          </Link>
-          <Link
-            href="/cart"
-            aria-label="購物車"
+          </button>
+          <button
+            onClick={openCart}
+            aria-label="開啟購物車"
             className="relative rounded-full p-2 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -88,22 +125,33 @@ export function Header() {
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
             )}
-          </Link>
+          </button>
         </div>
       </div>
 
-      {/* 導航（手機：橫向捲動） */}
-      <nav className="flex gap-4 overflow-x-auto border-t border-neutral-100 px-4 py-2 md:hidden">
-        {NAV_LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="whitespace-nowrap text-sm font-medium text-neutral-600"
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      {/* 手機：漢堡展開選單 */}
+      <div
+        className={`overflow-hidden border-t border-neutral-100 transition-all duration-300 md:hidden ${
+          isMobileMenuOpen ? "max-h-80" : "max-h-0 border-t-0"
+        }`}
+      >
+        <nav className="space-y-1 px-4 py-3">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={closeMobileMenu}
+              className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                pathname === link.href
+                  ? "bg-pumpkin-50 text-pumpkin-700"
+                  : "text-neutral-600 hover:bg-neutral-50"
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
     </header>
   );
 }

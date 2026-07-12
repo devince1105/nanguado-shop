@@ -10,10 +10,12 @@ import {
   type NewProduct,
   type ProductVariant,
 } from "@repo/db";
-import { and, asc, count, desc, eq, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, type SQL } from "drizzle-orm";
 
 export type ListProductsQuery = {
   category?: string;
+  /** 關鍵字搜尋（比對商品名稱，不分大小寫） */
+  search?: string;
   sort?: "newest" | "price_asc" | "price_desc";
   page?: number;
   limit?: number;
@@ -49,6 +51,10 @@ export class ProductsService {
         throw new NotFoundException(`找不到分類：${query.category}`);
       }
       conditions.push(eq(products.categoryId, category.id));
+    }
+
+    if (query.search?.trim()) {
+      conditions.push(ilike(products.name, `%${query.search.trim()}%`));
     }
 
     const where = and(...conditions);

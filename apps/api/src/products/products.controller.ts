@@ -12,12 +12,14 @@ export class ProductsController {
   @Get()
   list(
     @Query("category") category?: string,
+    @Query("search") search?: string,
     @Query("sort") sort?: ListProductsQuery["sort"],
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
     return this.productsService.list({
       category,
+      search,
       sort,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
