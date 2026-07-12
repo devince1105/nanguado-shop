@@ -126,3 +126,27 @@ export type OrderListResponse = {
   };
 };
 
+/** 後台會員列表項目（含訂單統計） */
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  address: string | null;
+  role: string;
+  createdAt: string;
+  orderCount: number;
+  /** 已付款訂單消費總額（元） */
+  totalSpent: number;
+};
+
+export type AdminUserListResponse = {
+  items: AdminUser[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+

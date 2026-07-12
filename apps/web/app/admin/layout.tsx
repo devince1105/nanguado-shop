@@ -8,6 +8,7 @@ import { useAuthStore } from "@/lib/store/auth";
 const NAV_ITEMS = [
   { href: "/admin/products", label: "商品管理", icon: "📦" },
   { href: "/admin/orders", label: "訂單管理", icon: "🧾" },
+  { href: "/admin/users", label: "會員管理", icon: "👤" },
 ];
 
 export default function AdminLayout({

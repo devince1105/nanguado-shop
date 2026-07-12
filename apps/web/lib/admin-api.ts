@@ -1,5 +1,7 @@
 import { API_URL } from "./api";
 import type {
+  AdminUser,
+  AdminUserListResponse,
   Category,
   Order,
   OrderListResponse,
@@ -115,4 +117,36 @@ export function updateOrderStatus(token: string, id: string, status: string) {
     method: "PATCH",
     body: JSON.stringify({ status }),
   });
+}
+
+// ---------- 會員 ----------
+
+export type AdminUserQuery = {
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
+export function getAdminUsers(token: string, query: AdminUserQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.search) params.set("search", query.search);
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return adminFetch<AdminUserListResponse>(`/users${qs ? `?${qs}` : ""}`, token);
+}
+
+export function getAdminUserOrders(token: string, userId: string) {
+  return adminFetch<Order[]>(`/users/${userId}/orders`, token);
+}
+
+export function updateUserRole(token: string, userId: string, role: string) {
+  return adminFetch<Pick<AdminUser, "id" | "email" | "name" | "role">>(
+    `/users/${userId}/role`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    },
+  );
 }
