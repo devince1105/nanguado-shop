@@ -20,7 +20,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "@nestjs/core"
+      "@nestjs/core",
+      "sharp"
     ]
   }
 }
