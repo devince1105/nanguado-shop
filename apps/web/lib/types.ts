@@ -86,7 +86,19 @@ export type Order = {
   paidAt: string | null;
   createdAt: string;
   items: OrderItem[];
+  subtotal: number;
+  shippingFee: number;
+  /** 建單回應才有：綠界付款表單 */
+  payment?: EcpayPayment;
 };
+
+/** 滿 NT$1,000 免運，未滿收 NT$60 */
+export const FREE_SHIPPING_THRESHOLD = 1000;
+export const SHIPPING_FEE = 60;
+
+export function calcShippingFee(subtotal: number): number {
+  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+}
 
 /** 綠界付款表單資料（由後端產生，前端隱藏 form submit） */
 export type EcpayPayment = {

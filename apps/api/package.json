@@ -13,6 +13,7 @@
     "@nestjs/core": "^11.1.3",
     "@nestjs/platform-express": "^11.1.3",
     "@repo/db": "workspace:*",
+    "@repo/ecpay": "workspace:*",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.2",
     "reflect-metadata": "^0.2.2",

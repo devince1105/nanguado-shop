@@ -12,6 +12,15 @@ import {
 } from "@repo/db";
 import { eq, inArray } from "drizzle-orm";
 import { CartService } from "../cart/cart.service";
+import { EcpayPaymentService } from "../ecpay/ecpay-payment.service";
+
+/** 滿 NT$1,000 免運，未滿收 NT$60 */
+const FREE_SHIPPING_THRESHOLD = 1000;
+const SHIPPING_FEE = 60;
+
+export function calcShippingFee(subtotal: number): number {
+  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+}
 
 export type CreateOrderDto = {
   /** 提供 sessionId 時，從該購物車取得下單商品並於成功後清空 */
@@ -38,7 +47,10 @@ function generateMerchantTradeNo() {
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly ecpayPaymentService: EcpayPaymentService,
+  ) {}
 
   async create(dto: CreateOrderDto) {
     for (const field of [
@@ -100,11 +112,13 @@ export class OrdersService {
       }
     }
 
-    const totalAmount = lineItems.reduce(
+    const subtotal = lineItems.reduce(
       (sum, item) =>
         sum + item.quantity * productMap.get(item.productId)!.price,
       0,
     );
+    const shippingFee = calcShippingFee(subtotal);
+    const totalAmount = subtotal + shippingFee;
 
     // 建立訂單與明細
     const [order] = await db
@@ -140,7 +154,15 @@ export class OrdersService {
       await this.cartService.clearCart(dto.sessionId);
     }
 
-    return this.getById(order.id);
+    const created = await this.getById(order.id);
+
+    // 產生綠界付款表單，前端以隱藏 form submit 到綠界收銀台
+    const payment = this.ecpayPaymentService.buildCheckoutForm(
+      created,
+      created.items,
+    );
+
+    return { ...created, payment };
   }
 
   async getById(id: string) {
@@ -152,6 +174,14 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`找不到訂單：${id}`);
     }
-    return order;
+    const subtotal = order.items.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
+    return {
+      ...order,
+      subtotal,
+      shippingFee: Math.max(0, order.totalAmount - subtotal),
+    };
   }
 }
