@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCartStore, selectItemCount } from "@/lib/store/cart";
+import { useAuthStore } from "@/lib/store/auth";
 import { useUiStore } from "@/lib/store/ui";
 
 const NAV_LINKS = [
@@ -24,11 +25,20 @@ export function Header() {
   const toggleMobileMenu = useUiStore((s) => s.toggleMobileMenu);
   const closeMobileMenu = useUiStore((s) => s.closeMobileMenu);
 
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const initAuth = useAuthStore((s) => s.initAuth);
+
   const [scrolled, setScrolled] = useState(false);
 
+  // 初始化登入狀態與購物車
   useEffect(() => {
-    fetchCart().catch(() => {});
-  }, [fetchCart]);
+    const init = async () => {
+      await initAuth();
+      await fetchCart();
+    };
+    init().catch(() => {});
+  }, [initAuth, fetchCart]);
 
   // 捲動時加上背景陰影
   useEffect(() => {
@@ -95,6 +105,7 @@ export function Header() {
 
         {/* 右側圖示 */}
         <div className="flex items-center gap-1">
+          {/* 搜尋 */}
           <button
             onClick={openSearch}
             aria-label="搜尋商品"
@@ -108,6 +119,8 @@ export function Header() {
               />
             </svg>
           </button>
+
+          {/* 購物車 */}
           <button
             onClick={openCart}
             aria-label="開啟購物車"
@@ -126,13 +139,53 @@ export function Header() {
               </span>
             )}
           </button>
+
+          {/* 會員選單（桌面） */}
+          <div className="hidden md:block">
+            {user ? (
+              <div className="relative group">
+                <button className="flex items-center gap-1 rounded-full px-2 py-1.5 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                  <span className="max-w-[70px] truncate text-xs font-semibold">
+                    {user.name}
+                  </span>
+                </button>
+                <div className="absolute right-0 top-full z-50 mt-1 hidden w-36 rounded-xl border border-neutral-100 bg-white p-1 shadow-lg shadow-neutral-900/5 group-hover:block hover:block">
+                  <Link
+                    href="/member/orders"
+                    className="block rounded-lg px-4 py-2 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+                  >
+                    我的訂單
+                  </Link>
+                  <button
+                    onClick={logout}
+                    className="w-full block rounded-lg px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                  >
+                    登出
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                aria-label="登入會員"
+                className="rounded-full p-2 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 手機：漢堡展開選單 */}
       <div
         className={`overflow-hidden border-t border-neutral-100 transition-all duration-300 md:hidden ${
-          isMobileMenuOpen ? "max-h-80" : "max-h-0 border-t-0"
+          isMobileMenuOpen ? "max-h-[400px]" : "max-h-0 border-t-0"
         }`}
       >
         <nav className="space-y-1 px-4 py-3">
@@ -150,6 +203,38 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+
+          {/* 手機會員功能 */}
+          <div className="mt-3 border-t border-neutral-100 pt-3">
+            {user ? (
+              <>
+                <Link
+                  href="/member/orders"
+                  onClick={closeMobileMenu}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                >
+                  我的訂單
+                </Link>
+                <button
+                  onClick={() => {
+                    closeMobileMenu();
+                    logout();
+                  }}
+                  className="w-full text-left block rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  登出 ({user.name})
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={closeMobileMenu}
+                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-pumpkin-600 hover:bg-pumpkin-50"
+              >
+                會員登入 / 註冊
+              </Link>
+            )}
+          </div>
         </nav>
       </div>
     </header>

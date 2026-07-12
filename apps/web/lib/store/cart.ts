@@ -19,9 +19,20 @@ type CartState = {
 };
 
 async function cartFetch(path: string, init?: RequestInit): Promise<Cart> {
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("nanguado-token") : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_URL}/api/v1${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers: {
+      ...headers,
+      ...init?.headers,
+    },
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {

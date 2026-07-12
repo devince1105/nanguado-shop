@@ -23,6 +23,8 @@ export function calcShippingFee(subtotal: number): number {
 }
 
 export type CreateOrderDto = {
+  /** 會員 ID */
+  userId?: string;
   /** 提供 sessionId 時，從該購物車取得下單商品並於成功後清空 */
   sessionId?: string;
   /** 或直接指定商品（直接購買） */
@@ -79,8 +81,8 @@ export class OrdersService {
         quantity: Math.max(1, item.quantity),
         selectedVariant: item.selectedVariant ?? null,
       }));
-    } else if (dto.sessionId) {
-      const cart = await this.cartService.getCart(dto.sessionId);
+    } else if (dto.userId || dto.sessionId) {
+      const cart = await this.cartService.getCart(dto.sessionId || "", dto.userId);
       if (!cart.items.length) {
         throw new BadRequestException("購物車是空的");
       }
@@ -90,7 +92,7 @@ export class OrdersService {
         selectedVariant: item.selectedVariant ?? null,
       }));
     } else {
-      throw new BadRequestException("請提供 sessionId 或 items");
+      throw new BadRequestException("請提供 userId、sessionId 或 items");
     }
 
     // 讀取商品並驗證庫存
@@ -125,6 +127,7 @@ export class OrdersService {
       .insert(orders)
       .values({
         merchantTradeNo: generateMerchantTradeNo(),
+        userId: dto.userId || null,
         totalAmount,
         status: "pending",
         recipientName: dto.recipientName,
@@ -150,8 +153,8 @@ export class OrdersService {
     );
 
     // 從購物車下單成功後清空購物車
-    if (!dto.items?.length && dto.sessionId) {
-      await this.cartService.clearCart(dto.sessionId);
+    if (!dto.items?.length && (dto.userId || dto.sessionId)) {
+      await this.cartService.clearCart(dto.sessionId || "", dto.userId);
     }
 
     const created = await this.getById(order.id);
@@ -183,5 +186,37 @@ export class OrdersService {
       subtotal,
       shippingFee: Math.max(0, order.totalAmount - subtotal),
     };
+  }
+
+  async getByUserId(userId: string) {
+    const db = getDb();
+    const rows = await db.query.orders.findMany({
+      where: eq(orders.userId, userId),
+      with: { items: true },
+      orderBy: (order, { desc }) => desc(order.createdAt),
+    });
+
+    return rows.map((order) => {
+      const subtotal = order.items.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0,
+      );
+      
+      const enhancedOrder = {
+        ...order,
+        subtotal,
+        shippingFee: Math.max(0, order.totalAmount - subtotal),
+      };
+
+      if (enhancedOrder.status === "pending") {
+        const payment = this.ecpayPaymentService.buildCheckoutForm(
+          enhancedOrder as any,
+          enhancedOrder.items,
+        );
+        return { ...enhancedOrder, payment };
+      }
+
+      return enhancedOrder;
+    });
   }
 }

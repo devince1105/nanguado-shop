@@ -8,6 +8,7 @@ import { API_URL, formatPrice } from "@/lib/api";
 import { getSessionId } from "@/lib/session";
 import { useCartStore } from "@/lib/store/cart";
 import { useToastStore } from "@/lib/store/toast";
+import { useAuthStore } from "@/lib/store/auth";
 import { calcShippingFee, type EcpayPayment, type Order } from "@/lib/types";
 
 type FormFields = {
@@ -40,6 +41,9 @@ export default function CheckoutPage() {
   const clearCart = useCartStore((s) => s.clear);
   const showToast = useToastStore((s) => s.show);
 
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+
   const [fields, setFields] = useState<FormFields>({
     recipientName: "",
     recipientPhone: "",
@@ -48,6 +52,18 @@ export default function CheckoutPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const redirectingRef = useRef(false);
+
+  // 登入時自動帶入收件人資訊
+  useEffect(() => {
+    if (user) {
+      setFields({
+        recipientName: user.name || "",
+        recipientPhone: user.phone || "",
+        recipientEmail: user.email || "",
+        recipientAddress: user.address || "",
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchCart().catch(() => {});
@@ -75,9 +91,16 @@ export default function CheckoutPage() {
     if (submitting) return;
     setSubmitting(true);
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${API_URL}/api/v1/orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ sessionId: getSessionId(), ...fields }),
       });
       const body = await res.json().catch(() => null);

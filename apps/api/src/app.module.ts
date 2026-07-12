@@ -4,6 +4,7 @@ import { CategoriesModule } from "./categories/categories.module";
 import { CartModule } from "./cart/cart.module";
 import { OrdersModule } from "./orders/orders.module";
 import { EcpayModule } from "./ecpay/ecpay.module";
+import { AuthModule } from "./auth/auth.module";
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { EcpayModule } from "./ecpay/ecpay.module";
     CartModule,
     OrdersModule,
     EcpayModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

@@ -105,3 +105,12 @@ export type EcpayPayment = {
   action: string;
   params: Record<string, string>;
 };
+
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+};
+
