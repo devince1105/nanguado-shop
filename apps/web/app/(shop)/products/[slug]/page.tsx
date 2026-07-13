@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getProduct } from "@/lib/api";
 import { Breadcrumbs } from "@/components/products/Breadcrumbs";
 import { ProductDetail } from "@/components/products/ProductDetail";
+import { ProductTrustSection } from "@/components/products/ProductTrustSection";
 import { SimilarProducts } from "@/components/products/SimilarProducts";
 
 type Props = {
@@ -50,6 +51,7 @@ export default async function ProductPage({ params }: Props) {
         ]}
       />
       <ProductDetail product={product} />
+      <ProductTrustSection product={product} />
       <SimilarProducts
         categorySlug={product.category?.slug}
         currentProductId={product.id}
