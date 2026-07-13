@@ -9,6 +9,7 @@ import type {
   ProductListResponse,
   ProductVariant,
   AdminStatsResponse,
+  AdminEnvironmentResponse,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -187,6 +188,12 @@ export function updateUserRole(token: string, userId: string, role: string) {
 
 export function getAdminStats(token: string) {
   return adminFetch<AdminStatsResponse>("/stats", token);
+}
+
+// ---------- 環境標示（唯讀）----------
+
+export function getAdminEnvironment(token: string) {
+  return adminFetch<AdminEnvironmentResponse>("/environment", token);
 }
 
 // ---------- 帳號安全 ----------

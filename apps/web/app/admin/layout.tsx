@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store/auth";
+import { getAdminEnvironment } from "@/lib/admin-api";
+import type { AdminEnvironmentResponse } from "@/lib/types";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "儀表板", icon: "📊" },
@@ -20,14 +22,25 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
   const initAuth = useAuthStore((s) => s.initAuth);
   const logout = useAuthStore((s) => s.logout);
   // 等 initAuth 完成後才判斷權限，避免重新整理時誤判未登入
   const [checked, setChecked] = useState(false);
+  const [env, setEnv] = useState<AdminEnvironmentResponse | null>(null);
 
   useEffect(() => {
     initAuth().finally(() => setChecked(true));
   }, [initAuth]);
+
+  // 確認為管理員後，向後端查詢目前連線的資料庫環境（唯讀）
+  useEffect(() => {
+    if (checked && user?.role === "admin" && token) {
+      getAdminEnvironment(token)
+        .then(setEnv)
+        .catch(() => setEnv(null));
+    }
+  }, [checked, user, token]);
 
   useEffect(() => {
     if (!checked) return;
@@ -107,7 +120,16 @@ export default function AdminLayout({
       </aside>
 
       {/* 主內容 */}
-      <div className="flex-1 min-w-0 bg-neutral-50">{children}</div>
+      <div className="flex-1 min-w-0 bg-neutral-50">
+        {/* 開發環境警示橫幅（唯讀，僅提示，不能切換資料庫）*/}
+        {env?.environment === "development" && (
+          <div className="border-b border-amber-300 bg-amber-100 px-6 py-2 text-center text-sm font-semibold text-amber-900">
+            ⚠️ 開發環境 — 目前連線至 DEV 資料庫
+            {env.endpoint ? `（${env.endpoint}）` : ""}，此處資料為測試用假資料
+          </div>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

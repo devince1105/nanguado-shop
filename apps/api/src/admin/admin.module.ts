@@ -9,6 +9,7 @@ import { AdminUsersController } from "./admin-users.controller";
 import { AdminUsersService } from "./admin-users.service";
 import { AdminGuard } from "../auth/admin.guard";
 import { AdminStatsController } from "./admin-stats.controller";
+import { AdminEnvironmentController } from "./admin-environment.controller";
 
 @Module({
   imports: [ProductsModule, CategoriesModule, OrdersModule],
@@ -18,6 +19,7 @@ import { AdminStatsController } from "./admin-stats.controller";
     AdminOrdersController,
     AdminUsersController,
     AdminStatsController,
+    AdminEnvironmentController,
   ],
   providers: [AdminGuard, AdminUsersService],
 })

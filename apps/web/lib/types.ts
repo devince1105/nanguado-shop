@@ -175,6 +175,12 @@ export type AdminUserListResponse = {
   };
 };
 
+/** 後端目前連線的資料庫環境（唯讀，不含帳密） */
+export type AdminEnvironmentResponse = {
+  environment: "development" | "production";
+  endpoint: string | null;
+};
+
 export type AdminStatsResponse = {
   todayOrderCount: number;
   todayRevenue: number;
