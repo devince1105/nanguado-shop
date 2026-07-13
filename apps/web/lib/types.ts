@@ -107,6 +107,30 @@ export type EcpayPayment = {
   params: Record<string, string>;
 };
 
+/** 單筆商品評價（作者名稱由後端遮罩後回傳） */
+export type ProductReview = {
+  id: string;
+  rating: number;
+  content: string;
+  createdAt: string;
+  authorName: string;
+};
+
+/** 商品評價摘要 + 列表 */
+export type ProductReviewSummary = {
+  average: number;
+  count: number;
+  distribution: Record<"1" | "2" | "3" | "4" | "5", number>;
+  items: ProductReview[];
+};
+
+/** 目前登入會員對某商品的留評資格 */
+export type ReviewEligibility = {
+  hasPurchased: boolean;
+  alreadyReviewed: boolean;
+  canReview: boolean;
+};
+
 export type User = {
   id: string;
   email: string;

@@ -147,16 +147,47 @@ export const orderItems = pgTable("order_items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ---------- 商品評價 ----------
+export const reviews = pgTable("reviews", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  productId: varchar("product_id", { length: 36 })
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** 佐證此評價來自實際購買的已付款訂單 */
+  orderId: varchar("order_id", { length: 36 })
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  /** 星等 1–5 */
+  rating: integer("rating").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ---------- Relations ----------
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
 }));
 
-export const productsRelations = relations(products, ({ one }) => ({
+export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, {
     fields: [products.categoryId],
     references: [categories.id],
   }),
+  reviews: many(reviews),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  product: one(products, {
+    fields: [reviews.productId],
+    references: [products.id],
+  }),
+  user: one(users, { fields: [reviews.userId], references: [users.id] }),
+  order: one(orders, { fields: [reviews.orderId], references: [orders.id] }),
 }));
 
 export const cartsRelations = relations(carts, ({ many, one }) => ({
@@ -211,3 +242,5 @@ export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type VerificationCode = typeof verificationCodes.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
+export type NewReview = typeof reviews.$inferInsert;
