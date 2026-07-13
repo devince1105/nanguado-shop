@@ -77,6 +77,28 @@ export default function MemberOrdersPage() {
     form.submit();
   };
 
+  const handleRepay = async (orderId: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/orders/${orderId}/repay`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "重新付款失敗");
+      }
+      const data = await res.json();
+      if (data.success && data.payment) {
+        submitEcpayForm(data.payment);
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "重新付款失敗", "error");
+    }
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
@@ -200,7 +222,7 @@ export default function MemberOrdersPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          submitEcpayForm(order.payment!);
+                          handleRepay(order.id);
                         }}
                         className="ml-2 inline-flex items-center rounded-full bg-pumpkin-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-pumpkin-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pumpkin-600 transition-colors"
                       >

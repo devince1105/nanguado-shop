@@ -326,4 +326,54 @@ export class OrdersService {
 
     return this.getById(id);
   }
+
+  async repay(orderId: string, userId?: string) {
+    const db = getDb();
+    
+    // 讀取該筆交易的訂單
+    const orderRecord = await db.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+      with: { items: true },
+    });
+
+    if (!orderRecord) {
+      throw new NotFoundException("找不到該訂單");
+    }
+
+    if (userId && orderRecord.userId !== userId) {
+      throw new BadRequestException("無權操作此訂單");
+    }
+
+    if (orderRecord.status !== "pending") {
+      throw new BadRequestException("只有待付款的訂單才能重新付款");
+    }
+
+    // 產生全新的綠界 MerchantTradeNo 以防綠界重複交易錯誤
+    const newMerchantTradeNo = generateMerchantTradeNo();
+
+    // 更新資料庫中的 MerchantTradeNo
+    await db
+      .update(orders)
+      .set({
+        merchantTradeNo: newMerchantTradeNo,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, orderId));
+
+    const updatedOrder = {
+      ...orderRecord,
+      merchantTradeNo: newMerchantTradeNo,
+    };
+
+    // 重新產生綠界付款表單參數
+    const payment = this.ecpayPaymentService.buildCheckoutForm(
+      updatedOrder as any,
+      orderRecord.items,
+    );
+
+    return {
+      success: true,
+      payment,
+    };
+  }
 }

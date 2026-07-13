@@ -36,4 +36,10 @@ export class OrdersController {
   getById(@Param("id") id: string) {
     return this.ordersService.getById(id);
   }
+
+  @Post(":id/repay")
+  @UseGuards(AuthGuard)
+  repay(@Param("id") id: string, @CurrentUser() user: { userId: string }) {
+    return this.ordersService.repay(id, user.userId);
+  }
 }
