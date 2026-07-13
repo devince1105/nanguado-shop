@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/api";
 import { useCartStore } from "@/lib/store/cart";
 import { useToastStore } from "@/lib/store/toast";
 import type { Product, SelectedVariant } from "@/lib/types";
+import { calcShippingFee, FREE_SHIPPING_THRESHOLD } from "@/lib/types";
 
 export function ProductDetail({ product }: { product: Product }) {
   const router = useRouter();
@@ -39,6 +40,12 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const soldOut = currentStock === 0;
   const lowStock = !soldOut && currentStock <= 10;
+
+  // 價格明細（Mercari 式費用透明化）：小計、預估運費、預計總額
+  const subtotal = product.price * Math.max(1, quantity);
+  const shippingFee = calcShippingFee(subtotal);
+  const estimatedTotal = subtotal + shippingFee;
+  const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
 
   // 當切換規格導致庫存小於目前所選數量時，重置數量為上限值
   useEffect(() => {
@@ -74,7 +81,7 @@ export function ProductDetail({ product }: { product: Product }) {
   }
 
   return (
-    <div className="mt-6 grid gap-8 pb-24 lg:grid-cols-[55%_1fr] lg:gap-12 lg:pb-0">
+    <div className="mt-6 grid gap-8 lg:grid-cols-[55%_1fr] lg:gap-12">
       {/* ---- 圖片區 ---- */}
       <div>
         {/* 桌面：大圖 + 縮圖 */}
@@ -168,6 +175,26 @@ export function ProductDetail({ product }: { product: Product }) {
           )}
         </div>
 
+        {/* 免運提示橫幅 */}
+        {!soldOut &&
+          (shippingFee > 0 ? (
+            <div className="mt-4 flex items-center gap-2 rounded-lg bg-pumpkin-50 px-3.5 py-2.5 text-sm text-pumpkin-800">
+              <span aria-hidden>🚚</span>
+              <span>
+                再湊{" "}
+                <b className="font-bold">
+                  {formatPrice(amountToFreeShipping)}
+                </b>{" "}
+                即可享免運！
+              </span>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3.5 py-2.5 text-sm text-green-700">
+              <span aria-hidden>🎉</span>
+              <span>本筆金額已達免運門檻！</span>
+            </div>
+          ))}
+
         {product.description && (
           <p className="mt-5 leading-7 text-neutral-600">
             {product.description}
@@ -243,21 +270,49 @@ export function ProductDetail({ product }: { product: Product }) {
           </div>
         </div>
 
+        {/* 價格明細 */}
+        {!soldOut && (
+          <div className="mt-6 rounded-xl bg-neutral-50 p-4 text-sm">
+            <div className="flex justify-between text-neutral-600">
+              <span>商品小計（{quantity} 件）</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="mt-1.5 flex justify-between text-neutral-600">
+              <span>運費</span>
+              {shippingFee === 0 ? (
+                <span className="font-bold text-green-600">免運</span>
+              ) : (
+                <span>+{formatPrice(shippingFee)}</span>
+              )}
+            </div>
+            <div className="mt-3 flex items-baseline justify-between border-t border-neutral-200 pt-3">
+              <span className="font-bold text-neutral-900">預計總額</span>
+              <span className="text-xl font-bold text-neutral-900">
+                {formatPrice(estimatedTotal)}
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-neutral-400">
+              ＊實際運費以購物車合計金額計算，滿{" "}
+              {formatPrice(FREE_SHIPPING_THRESHOLD)} 免運
+            </p>
+          </div>
+        )}
+
         {/* 按鈕（桌面） */}
         <div className="mt-8 hidden gap-3 lg:flex">
           <button
             onClick={handleAddToCart}
             disabled={soldOut || submitting}
-            className="flex-1 rounded-full bg-pumpkin-600 py-3.5 text-base font-bold text-white transition-colors hover:bg-pumpkin-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
+            className="flex-1 rounded-full border-2 border-pumpkin-600 py-3.5 text-base font-bold text-pumpkin-700 transition-colors hover:bg-pumpkin-50 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-300"
           >
             {submitting ? "處理中…" : "加入購物車"}
           </button>
           <button
             onClick={handleBuyNow}
             disabled={soldOut || submitting}
-            className="flex-1 rounded-full border-2 border-pumpkin-600 py-3.5 text-base font-bold text-pumpkin-700 transition-colors hover:bg-pumpkin-50 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-300"
+            className="flex-1 rounded-full bg-pumpkin-600 py-3.5 text-base font-bold text-white transition-colors hover:bg-pumpkin-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
           >
-            直接購買
+            立即購買
           </button>
         </div>
 
@@ -273,16 +328,16 @@ export function ProductDetail({ product }: { product: Product }) {
         <button
           onClick={handleAddToCart}
           disabled={soldOut || submitting}
-          className="flex-1 rounded-full bg-pumpkin-600 py-3 text-sm font-bold text-white disabled:bg-neutral-300"
+          className="flex-1 rounded-full border-2 border-pumpkin-600 py-3 text-sm font-bold text-pumpkin-700 disabled:border-neutral-300 disabled:text-neutral-300"
         >
           加入購物車
         </button>
         <button
           onClick={handleBuyNow}
           disabled={soldOut || submitting}
-          className="flex-1 rounded-full border-2 border-pumpkin-600 py-3 text-sm font-bold text-pumpkin-700 disabled:border-neutral-300 disabled:text-neutral-300"
+          className="flex-1 rounded-full bg-pumpkin-600 py-3 text-sm font-bold text-white disabled:bg-neutral-300"
         >
-          直接購買
+          立即購買
         </button>
       </div>
     </div>

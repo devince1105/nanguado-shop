@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getProduct } from "@/lib/api";
 import { Breadcrumbs } from "@/components/products/Breadcrumbs";
 import { ProductDetail } from "@/components/products/ProductDetail";
+import { SimilarProducts } from "@/components/products/SimilarProducts";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,7 @@ export default async function ProductPage({ params }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-24 lg:pb-8">
       <Breadcrumbs
         crumbs={[
           { label: "首頁", href: "/" },
@@ -49,6 +50,10 @@ export default async function ProductPage({ params }: Props) {
         ]}
       />
       <ProductDetail product={product} />
+      <SimilarProducts
+        categorySlug={product.category?.slug}
+        currentProductId={product.id}
+      />
     </div>
   );
 }
