@@ -24,17 +24,18 @@ async function main() {
   if (existing) {
     await db
       .update(users)
-      .set({ role: "admin", passwordHash })
+      .set({ role: "admin", passwordHash, isEmailVerified: true })
       .where(eq(users.id, existing.id));
-    console.log(`✅ 既有帳號 ${email} 已升級為管理員（密碼已重設）`);
+    console.log(`✅ 既有帳號 ${email} 已升級為管理員（密碼已重設，已驗證）`);
   } else {
     await db.insert(users).values({
       email,
       passwordHash,
       name: "管理員",
       role: "admin",
+      isEmailVerified: true,
     });
-    console.log(`✅ 已建立管理員帳號 ${email}`);
+    console.log(`✅ 已建立管理員帳號 ${email}（已驗證）`);
   }
 }
 

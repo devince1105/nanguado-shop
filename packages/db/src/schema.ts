@@ -51,6 +51,7 @@ export const products = pgTable("products", {
   images: jsonb("images").$type<string[]>().notNull().default([]),
   /** 規格，例如 [{ name: "尺寸", options: ["S","M","L"] }] */
   variants: jsonb("variants").$type<ProductVariant[]>().notNull().default([]),
+  variantStock: jsonb("variant_stock").$type<Record<string, number>>().notNull().default({}),
   stock: integer("stock").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -69,6 +70,7 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 120 }),
   phone: varchar("phone", { length: 30 }),
   address: text("address"),
+  isEmailVerified: boolean("is_email_verified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -186,6 +188,17 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   }),
 }));
 
+// ---------- 驗證碼 ----------
+export const verificationCodes = pgTable("verification_codes", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  email: varchar("email", { length: 255 }).notNull(),
+  code: varchar("code", { length: 6 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ---------- 型別匯出 ----------
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
@@ -197,3 +210,4 @@ export type CartItem = typeof cartItems.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type VerificationCode = typeof verificationCodes.$inferSelect;

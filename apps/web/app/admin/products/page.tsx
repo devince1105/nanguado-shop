@@ -13,7 +13,7 @@ import {
   updateProduct,
   type ProductFormDto,
 } from "@/lib/admin-api";
-import type { Category, Product } from "@/lib/types";
+import type { Category, Product, ProductVariant } from "@/lib/types";
 
 type FormState = {
   name: string;
@@ -25,6 +25,11 @@ type FormState = {
   images: string;
   stock: string;
   isActive: boolean;
+  variants: {
+    name: string;
+    optionsText: string;
+  }[];
+  variantStock: Record<string, string>;
 };
 
 const EMPTY_FORM: FormState = {
@@ -37,9 +42,17 @@ const EMPTY_FORM: FormState = {
   images: "",
   stock: "0",
   isActive: true,
+  variants: [],
+  variantStock: {},
 };
 
 function toFormState(product: Product): FormState {
+  const vsMap: Record<string, string> = {};
+  if (product.variantStock) {
+    for (const [k, v] of Object.entries(product.variantStock)) {
+      vsMap[k] = String(v);
+    }
+  }
   return {
     name: product.name,
     slug: product.slug,
@@ -51,7 +64,32 @@ function toFormState(product: Product): FormState {
     images: product.images.join("\n"),
     stock: String(product.stock),
     isActive: product.isActive,
+    variants: (product.variants || []).map((v) => ({
+      name: v.name,
+      optionsText: v.options.join(", "),
+    })),
+    variantStock: vsMap,
   };
+}
+
+function getCombinations(variants: { name: string; options: string[] }[]): string[] {
+  if (variants.length === 0) return [];
+  const combine = (list: string[][]): string[][] => {
+    if (list.length === 0) return [[]];
+    const head = list[0];
+    const tail = list.slice(1);
+    const combinedTail = combine(tail);
+    const result: string[][] = [];
+    for (const h of head) {
+      for (const t of combinedTail) {
+        result.push([h, ...t]);
+      }
+    }
+    return result;
+  };
+  const optionsList = variants.map((v) => v.options);
+  const combos = combine(optionsList);
+  return combos.map((combo) => combo.join(" / "));
 }
 
 export default function AdminProductsPage() {
@@ -72,6 +110,7 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<Product | null>(null);
+  const [useVariantStock, setUseVariantStock] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     if (!token) return;
@@ -101,12 +140,39 @@ export default function AdminProductsPage() {
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
+    setUseVariantStock(false);
     setEditing("new");
   };
 
   const openEdit = (product: Product) => {
     setForm(toFormState(product));
+    setUseVariantStock(Object.keys(product.variantStock || {}).length > 0);
     setEditing(product);
+  };
+
+  const addVariantGroup = () => {
+    setForm({
+      ...form,
+      variants: [...form.variants, { name: "", optionsText: "" }],
+    });
+  };
+
+  const removeVariantGroup = (index: number) => {
+    const next = [...form.variants];
+    next.splice(index, 1);
+    setForm({ ...form, variants: next });
+  };
+
+  const handleVariantNameChange = (index: number, name: string) => {
+    const next = [...form.variants];
+    next[index] = { ...next[index], name };
+    setForm({ ...form, variants: next });
+  };
+
+  const handleVariantOptionsChange = (index: number, optionsText: string) => {
+    const next = [...form.variants];
+    next[index] = { ...next[index], optionsText };
+    setForm({ ...form, variants: next });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,7 +180,6 @@ export default function AdminProductsPage() {
     if (!token || !editing) return;
 
     const price = Number(form.price);
-    const stock = Number(form.stock);
     if (!form.name.trim() || !form.slug.trim()) {
       showToast("請填寫商品名稱與 Slug", "error");
       return;
@@ -122,6 +187,33 @@ export default function AdminProductsPage() {
     if (!Number.isFinite(price) || price < 0) {
       showToast("請輸入有效的售價", "error");
       return;
+    }
+
+    // 解析規格
+    const parsedVariants = form.variants
+      .map((v) => ({
+        name: v.name.trim(),
+        options: v.optionsText
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      }))
+      .filter((v) => v.name && v.options.length > 0);
+
+    // 計算各規格庫存與總庫存
+    let finalStock = Number(form.stock);
+    const finalVariantStock: Record<string, number> = {};
+
+    if (parsedVariants.length > 0 && useVariantStock) {
+      const combinations = getCombinations(parsedVariants);
+      let calculatedTotalStock = 0;
+      for (const combo of combinations) {
+        const variantStockVal = Number(form.variantStock[combo] || 0);
+        const variantStockNum = Number.isFinite(variantStockVal) ? Math.max(0, variantStockVal) : 0;
+        finalVariantStock[combo] = variantStockNum;
+        calculatedTotalStock += variantStockNum;
+      }
+      finalStock = calculatedTotalStock;
     }
 
     const dto: ProductFormDto = {
@@ -137,7 +229,9 @@ export default function AdminProductsPage() {
         .split("\n")
         .map((s) => s.trim())
         .filter(Boolean),
-      stock: Number.isFinite(stock) ? Math.max(0, stock) : 0,
+      variants: parsedVariants,
+      variantStock: (parsedVariants.length > 0 && useVariantStock) ? finalVariantStock : {},
+      stock: Number.isFinite(finalStock) ? Math.max(0, finalStock) : 0,
       isActive: form.isActive,
     };
 
@@ -417,19 +511,108 @@ export default function AdminProductsPage() {
                     className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-pumpkin-400 focus:outline-none"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-xs font-semibold text-neutral-600">
-                    庫存 *
-                  </span>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-pumpkin-400 focus:outline-none"
-                  />
-                </label>
+                {form.variants.filter(v => v.name.trim() && v.optionsText.trim()).length > 0 ? (
+                  <div className="col-span-1 sm:col-span-3 space-y-3">
+                    <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100/50">
+                      <input
+                        type="checkbox"
+                        checked={useVariantStock}
+                        onChange={(e) => setUseVariantStock(e.target.checked)}
+                        className="h-4 w-4 rounded border-neutral-300 accent-pumpkin-600"
+                      />
+                      啟用規格個別庫存控制（若關閉，所有規格將共享同一總庫存）
+                    </label>
+
+                    {useVariantStock ? (
+                      <div className="rounded-xl border border-neutral-100 bg-neutral-50 p-3 space-y-2">
+                        {(() => {
+                          const combinations = getCombinations(
+                            form.variants
+                              .map((v) => ({
+                                name: v.name.trim(),
+                                options: v.optionsText
+                                  .split(",")
+                                  .map((s) => s.trim())
+                                  .filter(Boolean),
+                              }))
+                              .filter((v) => v.name && v.options.length > 0)
+                          );
+                          const totalCalculatedStock = combinations.reduce((acc, combo) => {
+                            const val = Number(form.variantStock[combo] || 0);
+                            return acc + (Number.isFinite(val) ? Math.max(0, val) : 0);
+                          }, 0);
+                          return (
+                            <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
+                              各規格組合庫存設定（系統將自動累加為總庫存：<span className="text-pumpkin-600 font-extrabold text-xs">{totalCalculatedStock}</span> 件）
+                            </span>
+                          );
+                        })()}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                          {getCombinations(
+                            form.variants
+                              .map((v) => ({
+                                name: v.name.trim(),
+                                options: v.optionsText
+                                  .split(",")
+                                  .map((s) => s.trim())
+                                  .filter(Boolean),
+                              }))
+                              .filter((v) => v.name && v.options.length > 0)
+                          ).map((combo) => (
+                            <label key={combo} className="flex items-center justify-between gap-2 bg-white border border-neutral-100 rounded-lg p-2 text-xs">
+                              <span className="font-semibold text-neutral-600 truncate max-w-[120px]">{combo}</span>
+                              <input
+                                type="number"
+                                min={0}
+                                required
+                                placeholder="0"
+                                value={form.variantStock[combo] || "0"}
+                                onChange={(e) =>
+                                  setForm({
+                                    ...form,
+                                    variantStock: {
+                                      ...form.variantStock,
+                                      [combo]: e.target.value,
+                                    },
+                                  })
+                                }
+                                className="w-20 rounded-md border border-neutral-200 px-2 py-1 text-right focus:border-pumpkin-400 focus:outline-none font-mono"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="block">
+                        <span className="text-xs font-semibold text-neutral-600">
+                          總庫存數量 *
+                        </span>
+                        <input
+                          type="number"
+                          required
+                          min={0}
+                          value={form.stock}
+                          onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                          className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-pumpkin-400 focus:outline-none"
+                        />
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <label className="block">
+                    <span className="text-xs font-semibold text-neutral-600">
+                      庫存 *
+                    </span>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={form.stock}
+                      onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-pumpkin-400 focus:outline-none"
+                    />
+                  </label>
+                )}
               </div>
 
               <label className="block">
@@ -463,6 +646,61 @@ export default function AdminProductsPage() {
                   className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm font-mono focus:border-pumpkin-400 focus:outline-none"
                 />
               </label>
+
+              <div className="border-t border-neutral-100 pt-4 mt-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-neutral-600">
+                    商品規格（例如：顏色、尺寸）
+                  </span>
+                  <button
+                    type="button"
+                    onClick={addVariantGroup}
+                    className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 transition-colors"
+                  >
+                    ＋ 新增規格組
+                  </button>
+                </div>
+
+                {form.variants.length === 0 ? (
+                  <p className="text-xs text-neutral-400 italic">目前無規格。如無規格，顧客將直接購買單一商品。</p>
+                ) : (
+                  <div className="space-y-3">
+                    {form.variants.map((v, idx) => (
+                      <div key={idx} className="flex items-start gap-2 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+                          <div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="規格名稱 (如: 尺寸)"
+                              value={v.name}
+                              onChange={(e) => handleVariantNameChange(idx, e.target.value)}
+                              className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs focus:border-pumpkin-400 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="選項內容 (如: S,M,L，以逗號分隔)"
+                              value={v.optionsText}
+                              onChange={(e) => handleVariantOptionsChange(idx, e.target.value)}
+                              className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs focus:border-pumpkin-400 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeVariantGroup(idx)}
+                          className="shrink-0 text-red-500 hover:text-red-700 p-1.5 text-xs font-semibold"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <label className="block">
                 <span className="text-xs font-semibold text-neutral-600">

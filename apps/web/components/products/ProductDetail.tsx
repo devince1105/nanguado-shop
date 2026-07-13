@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "@/lib/api";
 import { useCartStore } from "@/lib/store/cart";
 import { useToastStore } from "@/lib/store/toast";
@@ -24,8 +24,26 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const onSale =
     product.compareAtPrice != null && product.compareAtPrice > product.price;
-  const soldOut = product.stock === 0;
-  const lowStock = !soldOut && product.stock <= 10;
+
+  // 取得當前選取的規格組合 Key (以 product.variants 定義的順序組合)
+  const selectedComboKey = useMemo(() => {
+    return product.variants.map((v) => selected[v.name] || "").join(" / ");
+  }, [product.variants, selected]);
+
+  // 取得當前規格組合的庫存量 (若無規格或未啟用規格個別庫存，則回傳主商品庫存)
+  const currentStock = useMemo(() => {
+    const hasVariantStock = product.variantStock && Object.keys(product.variantStock).length > 0;
+    if (!product.variants.length || !hasVariantStock) return product.stock;
+    return product.variantStock?.[selectedComboKey] ?? 0;
+  }, [product.variants.length, product.stock, product.variantStock, selectedComboKey]);
+
+  const soldOut = currentStock === 0;
+  const lowStock = !soldOut && currentStock <= 10;
+
+  // 當切換規格導致庫存小於目前所選數量時，重置數量為上限值
+  useEffect(() => {
+    setQuantity((q) => Math.min(currentStock, Math.max(1, q)));
+  }, [currentStock]);
 
   const selectedVariant = useMemo(
     () => (product.variants.length ? selected : null),
@@ -33,7 +51,7 @@ export function ProductDetail({ product }: { product: Product }) {
   );
 
   function changeQuantity(delta: number) {
-    setQuantity((q) => Math.min(product.stock, Math.max(1, q + delta)));
+    setQuantity((q) => Math.min(currentStock, Math.max(1, q + delta)));
   }
 
   async function handleAddToCart(): Promise<boolean> {
@@ -201,7 +219,7 @@ export function ProductDetail({ product }: { product: Product }) {
               <span className="min-w-12 text-center font-bold">{quantity}</span>
               <button
                 onClick={() => changeQuantity(1)}
-                disabled={quantity >= product.stock}
+                disabled={quantity >= currentStock || soldOut}
                 className="px-4 py-2 text-lg text-neutral-600 disabled:text-neutral-300"
                 aria-label="增加數量"
               >
@@ -215,11 +233,11 @@ export function ProductDetail({ product }: { product: Product }) {
               </span>
             ) : lowStock ? (
               <span className="text-sm font-medium text-pumpkin-700">
-                庫存只剩 {product.stock} 件！
+                庫存只剩 {currentStock} 件！
               </span>
             ) : (
               <span className="text-sm text-neutral-400">
-                庫存 {product.stock} 件
+                庫存 {currentStock} 件
               </span>
             )}
           </div>

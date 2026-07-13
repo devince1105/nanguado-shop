@@ -6,9 +6,12 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 
 const NAV_ITEMS = [
+  { href: "/admin", label: "儀表板", icon: "📊" },
   { href: "/admin/products", label: "商品管理", icon: "📦" },
+  { href: "/admin/categories", label: "分類管理", icon: "🏷️" },
   { href: "/admin/orders", label: "訂單管理", icon: "🧾" },
   { href: "/admin/users", label: "會員管理", icon: "👤" },
+  { href: "/admin/settings", label: "帳號設定", icon: "⚙️" },
 ];
 
 export default function AdminLayout({
@@ -60,7 +63,10 @@ export default function AdminLayout({
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {NAV_ITEMS.map((item) => {
-            const active = pathname.startsWith(item.href);
+            const active =
+              item.href === "/admin"
+                ? pathname === "/admin"
+                : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

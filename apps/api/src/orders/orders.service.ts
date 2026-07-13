@@ -116,9 +116,19 @@ export class OrdersService {
       if (!product || !product.isActive) {
         throw new NotFoundException(`找不到商品：${item.productId}`);
       }
-      if (item.quantity > product.stock) {
+
+      let maxStock = product.stock;
+      const hasVariantStock = product.variantStock && Object.keys(product.variantStock).length > 0;
+      if (hasVariantStock && product.variants && product.variants.length > 0 && item.selectedVariant) {
+        const key = product.variants
+          .map((v: any) => item.selectedVariant?.[v.name] || "")
+          .join(" / ");
+        maxStock = (product.variantStock as any)?.[key] ?? 0;
+      }
+
+      if (item.quantity > maxStock) {
         throw new BadRequestException(
-          `庫存不足：「${product.name}」目前僅剩 ${product.stock} 件`,
+          `庫存不足：「${product.name}」目前僅剩 ${maxStock} 件`,
         );
       }
     }

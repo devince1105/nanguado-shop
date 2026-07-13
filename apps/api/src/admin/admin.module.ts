@@ -8,6 +8,7 @@ import { AdminOrdersController } from "./admin-orders.controller";
 import { AdminUsersController } from "./admin-users.controller";
 import { AdminUsersService } from "./admin-users.service";
 import { AdminGuard } from "../auth/admin.guard";
+import { AdminStatsController } from "./admin-stats.controller";
 
 @Module({
   imports: [ProductsModule, CategoriesModule, OrdersModule],
@@ -16,7 +17,9 @@ import { AdminGuard } from "../auth/admin.guard";
     AdminCategoriesController,
     AdminOrdersController,
     AdminUsersController,
+    AdminStatsController,
   ],
   providers: [AdminGuard, AdminUsersService],
 })
 export class AdminModule {}
+

@@ -26,6 +26,7 @@ export type Product = {
   categoryId: string | null;
   images: string[];
   variants: ProductVariant[];
+  variantStock?: Record<string, number>;
   stock: number;
   isActive: boolean;
   createdAt: string;
@@ -149,4 +150,21 @@ export type AdminUserListResponse = {
     totalPages: number;
   };
 };
+
+export type AdminStatsResponse = {
+  todayOrderCount: number;
+  todayRevenue: number;
+  lowStockCount: number;
+  totalSales: number;
+  totalOrders: number;
+  totalUsers: number;
+  recentOrders: Order[];
+  lowStockProducts: Product[];
+  salesTrend: {
+    date: string;
+    revenue: number;
+    orderCount: number;
+  }[];
+};
+
 

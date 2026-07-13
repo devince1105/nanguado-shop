@@ -1,5 +1,5 @@
 import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
-import { getDb, orders } from "@repo/db";
+import { getDb, orders, products } from "@repo/db";
 import { eq } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
 
@@ -38,6 +38,47 @@ export class EcpayController {
     const db = getDb();
 
     if (payload.RtnCode === "1") {
+      // 讀取該筆交易的訂單明細，並於狀態變更前扣減庫存
+      const orderRecord = await db.query.orders.findFirst({
+        where: eq(orders.merchantTradeNo, merchantTradeNo),
+        with: { items: true },
+      });
+
+      if (orderRecord && orderRecord.status !== "paid") {
+        for (const item of orderRecord.items) {
+          const product = await db.query.products.findFirst({
+            where: eq(products.id, item.productId),
+          });
+          if (product) {
+            let nextStock = Math.max(0, product.stock - item.quantity);
+            let nextVariantStock = { ...product.variantStock };
+
+            const hasVariantStock = product.variantStock && Object.keys(product.variantStock).length > 0;
+            if (hasVariantStock && product.variants && product.variants.length > 0 && item.selectedVariant) {
+              const key = product.variants
+                .map((v: any) => (item.selectedVariant as Record<string, string>)[v.name] || "")
+                .join(" / ");
+              const currentVal = nextVariantStock[key] ?? 0;
+              nextVariantStock[key] = Math.max(0, currentVal - item.quantity);
+              
+              // 總庫存更新為各規格庫存的加總
+              nextStock = Object.values(nextVariantStock).reduce((a, b) => a + b, 0);
+            }
+
+            await db
+              .update(products)
+              .set({
+                stock: nextStock,
+                variantStock: nextVariantStock,
+                updatedAt: new Date(),
+              })
+              .where(eq(products.id, product.id));
+            
+            this.logger.log(`📦 已更新商品 ${product.name} 庫存：剩餘 ${nextStock} 件`);
+          }
+        }
+      }
+
       await db
         .update(orders)
         .set({

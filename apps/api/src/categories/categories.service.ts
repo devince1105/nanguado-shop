@@ -95,7 +95,7 @@ export class CategoriesService {
     return updated;
   }
 
-  /** 刪除分類；底下商品改為未分類（categoryId = null） */
+  /** 刪除分類；若有商品關聯則拒絕刪除 */
   async remove(id: string) {
     const db = getDb();
     const existing = await db.query.categories.findFirst({
@@ -104,10 +104,15 @@ export class CategoriesService {
     if (!existing) {
       throw new NotFoundException(`找不到分類：${id}`);
     }
-    await db
-      .update(products)
-      .set({ categoryId: null })
-      .where(eq(products.categoryId, id));
+
+    // 檢查是否有商品關聯此分類
+    const associatedProduct = await db.query.products.findFirst({
+      where: eq(products.categoryId, id),
+    });
+    if (associatedProduct) {
+      throw new BadRequestException("此分類下仍有商品，無法刪除。請先刪除該分類下的所有商品。");
+    }
+
     await db.delete(categories).where(eq(categories.id, id));
     return { success: true };
   }

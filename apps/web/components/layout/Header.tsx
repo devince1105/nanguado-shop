@@ -152,19 +152,35 @@ export function Header() {
                     {user.name}
                   </span>
                 </button>
-                <div className="absolute right-0 top-full z-50 mt-1 hidden w-36 rounded-xl border border-neutral-100 bg-white p-1 shadow-lg shadow-neutral-900/5 group-hover:block hover:block">
-                  <Link
-                    href="/member/orders"
-                    className="block rounded-lg px-4 py-2 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
-                  >
-                    我的訂單
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="w-full block rounded-lg px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
-                  >
-                    登出
-                  </button>
+                <div className="absolute right-0 top-full z-50 pt-2 hidden w-36 group-hover:block hover:block">
+                  <div className="rounded-xl border border-neutral-100 bg-white p-1 shadow-lg shadow-neutral-900/5">
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        className="block rounded-lg px-4 py-2 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900 font-medium"
+                      >
+                        後台管理
+                      </Link>
+                    )}
+                    <Link
+                      href="/member/profile"
+                      className="block rounded-lg px-4 py-2 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      個人資訊
+                    </Link>
+                    <Link
+                      href="/member/orders"
+                      className="block rounded-lg px-4 py-2 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      我的訂單
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="w-full block rounded-lg px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                    >
+                      登出
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -208,6 +224,22 @@ export function Header() {
           <div className="mt-3 border-t border-neutral-100 pt-3">
             {user ? (
               <>
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    onClick={closeMobileMenu}
+                    className="block rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                  >
+                    後台管理
+                  </Link>
+                )}
+                <Link
+                  href="/member/profile"
+                  onClick={closeMobileMenu}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                >
+                  個人資訊
+                </Link>
                 <Link
                   href="/member/orders"
                   onClick={closeMobileMenu}

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: nanguado-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nanguado_shop
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: nanguado-api
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL to point to local Docker db service
+      DATABASE_URL: postgresql://postgres:password@db:5432/nanguado_shop
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: nanguado-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    env_file:
+      - .env
+    environment:
+      # Tell frontend Next.js to connect to the backend server (on local port 4000 from browser perspective)
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+
+volumes:
+  pgdata:

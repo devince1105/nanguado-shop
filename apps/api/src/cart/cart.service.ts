@@ -110,9 +110,18 @@ export class CartService {
     );
 
     const newQuantity = (existing?.quantity ?? 0) + quantity;
-    if (newQuantity > product.stock) {
+    let maxStock = product.stock;
+    const hasVariantStock = product.variantStock && Object.keys(product.variantStock).length > 0;
+    if (hasVariantStock && product.variants && product.variants.length > 0 && dto.selectedVariant) {
+      const key = product.variants
+        .map((v: any) => dto.selectedVariant?.[v.name] || "")
+        .join(" / ");
+      maxStock = (product.variantStock as any)?.[key] ?? 0;
+    }
+
+    if (newQuantity > maxStock) {
       throw new BadRequestException(
-        `庫存不足：「${product.name}」目前僅剩 ${product.stock} 件`,
+        `庫存不足：「${product.name}」目前僅剩 ${maxStock} 件`,
       );
     }
 
@@ -151,9 +160,18 @@ export class CartService {
     if (!item) {
       throw new NotFoundException("找不到購物車項目");
     }
-    if (item.product && quantity > item.product.stock) {
+    let maxStock = item.product?.stock ?? 0;
+    const hasVariantStock = item.product?.variantStock && Object.keys(item.product.variantStock).length > 0;
+    if (hasVariantStock && item.product && item.product.variants && item.product.variants.length > 0 && item.selectedVariant) {
+      const key = item.product.variants
+        .map((v: any) => (item.selectedVariant as Record<string, string>)[v.name] || "")
+        .join(" / ");
+      maxStock = (item.product.variantStock as any)?.[key] ?? 0;
+    }
+
+    if (item.product && quantity > maxStock) {
       throw new BadRequestException(
-        `庫存不足：「${item.product.name}」目前僅剩 ${item.product.stock} 件`,
+        `庫存不足：「${item.product.name}」目前僅剩 ${maxStock} 件`,
       );
     }
     await db
@@ -259,7 +277,14 @@ export class CartService {
       );
 
       if (matchedUserItem) {
-        const maxStock = gItem.product?.stock ?? 999;
+        let maxStock = gItem.product?.stock ?? 999;
+        const hasVariantStock = gItem.product?.variantStock && Object.keys(gItem.product.variantStock).length > 0;
+        if (hasVariantStock && gItem.product && gItem.product.variants && gItem.product.variants.length > 0 && gItem.selectedVariant) {
+          const key = gItem.product.variants
+            .map((v: any) => (gItem.selectedVariant as Record<string, string>)[v.name] || "")
+            .join(" / ");
+          maxStock = (gItem.product.variantStock as any)?.[key] ?? 0;
+        }
         const mergedQty = Math.min(
           matchedUserItem.quantity + gItem.quantity,
           maxStock,

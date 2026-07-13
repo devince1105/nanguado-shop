@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState, useEffect, Suspense } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useToastStore } from "@/lib/store/toast";
+import { API_URL } from "@/lib/api";
+import { Eye, EyeOff } from "lucide-react";
 
 function RegisterForm() {
   const router = useRouter();
@@ -20,6 +22,15 @@ function RegisterForm() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
 
+  // OTP 驗證碼相關狀態
+  const [code, setCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // 密碼顯示狀態
+  const [showPassword, setShowPassword] = useState(false);
+
   const redirectUrl = searchParams.get("redirect") || "/";
 
   // 若已登入，直接導向目的地
@@ -29,9 +40,59 @@ function RegisterForm() {
     }
   }, [user, router, redirectUrl]);
 
+  // 驗證碼重新傳送倒數計時器
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  // 傳送驗證碼
+  async function handleSendOtp() {
+    if (!email) {
+      showToast("請輸入電子郵件", "error");
+      return;
+    }
+    // 簡易信箱格式比對
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      showToast("電子郵件格式不正確", "error");
+      return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const res = await fetch(`${API_URL}/api/v1/auth/send-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.message ?? "發送驗證碼失敗");
+      }
+      setOtpSent(true);
+      setCountdown(60);
+      showToast("驗證碼已寄出，請查收信箱！", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "發送失敗", "error");
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+
+    if (!otpSent) {
+      showToast("請先傳送電子郵件驗證碼", "error");
+      return;
+    }
+
+    if (!code || code.length !== 6) {
+      showToast("請輸入 6 位數字驗證碼", "error");
+      return;
+    }
 
     if (password.length < 6) {
       showToast("密碼字數必須大於 6 位", "error");
@@ -45,6 +106,7 @@ function RegisterForm() {
         name,
         phone: phone || undefined,
         address: address || undefined,
+        code,
       });
       showToast("註冊並登入成功！");
       router.push(redirectUrl);
@@ -54,7 +116,7 @@ function RegisterForm() {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm text-neutral-950 placeholder-neutral-400 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20";
+    "w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm text-neutral-950 placeholder-neutral-400 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 disabled:bg-neutral-100 disabled:text-neutral-500";
 
   return (
     <div className="flex min-h-[90vh] items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-neutral-50/50">
@@ -88,28 +150,72 @@ function RegisterForm() {
             <label className="mb-1 block text-xs font-semibold text-neutral-500">
               電子郵件 <span className="text-red-500">*</span>
             </label>
-            <input
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-              placeholder="example@mail.com"
-            />
+            <div className="flex gap-2">
+              <input
+                required
+                type="email"
+                value={email}
+                disabled={otpSent}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputClass}
+                placeholder="example@mail.com"
+              />
+              <button
+                type="button"
+                disabled={sendingOtp || countdown > 0}
+                onClick={handleSendOtp}
+                className="shrink-0 rounded-lg bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+              >
+                {sendingOtp ? "傳送中…" : countdown > 0 ? `${countdown}s` : otpSent ? "重新傳送" : "傳送驗證碼"}
+              </button>
+            </div>
+            {otpSent && (
+              <p className="mt-1.5 text-[11px] text-neutral-400">
+                驗證信箱已鎖定。如需更換信箱，請重新整理頁面。
+              </p>
+            )}
           </div>
+
+          {/* 驗證碼輸入欄位 (在寄出驗證碼後顯示) */}
+          {otpSent && (
+            <div className="animate-fade-in">
+              <label className="mb-1 block text-xs font-semibold text-neutral-500">
+                電子郵件驗證碼 <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                className={inputClass}
+                placeholder="請輸入 6 位數驗證碼"
+              />
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-xs font-semibold text-neutral-500">
               密碼 <span className="text-red-500">*</span>
             </label>
-            <input
-              required
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              placeholder="請輸入至少 6 位密碼"
-            />
+            <div className="relative">
+              <input
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${inputClass} pr-10`}
+                placeholder="請輸入至少 6 位密碼"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                aria-label={showPassword ? "隱藏密碼" : "顯示密碼"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div>
@@ -143,8 +249,8 @@ function RegisterForm() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={loading}
-              className="group relative flex w-full justify-center rounded-xl bg-pumpkin-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none"
+              disabled={loading || !otpSent || code.length !== 6}
+              className="group relative flex w-full justify-center rounded-xl bg-pumpkin-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
                 <svg

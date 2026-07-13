@@ -32,6 +32,7 @@ export type CreateProductDto = {
   categoryId?: string | null;
   images?: string[];
   variants?: ProductVariant[];
+  variantStock?: Record<string, number>;
   stock?: number;
   isActive?: boolean;
 };
@@ -116,6 +117,7 @@ export class ProductsService {
       categoryId: dto.categoryId ?? null,
       images: dto.images ?? [],
       variants: dto.variants ?? [],
+      variantStock: dto.variantStock ?? {},
       stock: dto.stock ?? 0,
       isActive: dto.isActive ?? true,
     };
@@ -191,6 +193,7 @@ export class ProductsService {
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
         ...(dto.images !== undefined && { images: dto.images }),
         ...(dto.variants !== undefined && { variants: dto.variants }),
+        ...(dto.variantStock !== undefined && { variantStock: dto.variantStock }),
         ...(dto.stock !== undefined && { stock: dto.stock }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         updatedAt: new Date(),

@@ -8,6 +8,7 @@ import type {
   Product,
   ProductListResponse,
   ProductVariant,
+  AdminStatsResponse,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -49,6 +50,7 @@ export type ProductFormDto = {
   categoryId?: string | null;
   images?: string[];
   variants?: ProductVariant[];
+  variantStock?: Record<string, number>;
   stock?: number;
   isActive?: boolean;
 };
@@ -89,10 +91,40 @@ export function deleteProduct(token: string, id: string) {
   });
 }
 
-// ---------- 分類 ----------
+export type CategoryFormDto = {
+  name: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  sortOrder?: number;
+};
 
 export function getAdminCategories(token: string) {
   return adminFetch<Category[]>("/categories", token);
+}
+
+export function createCategory(token: string, dto: CategoryFormDto) {
+  return adminFetch<Category>("/categories", token, {
+    method: "POST",
+    body: JSON.stringify(dto),
+  });
+}
+
+export function updateCategory(
+  token: string,
+  id: string,
+  dto: Partial<CategoryFormDto>,
+) {
+  return adminFetch<Category>(`/categories/${id}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(dto),
+  });
+}
+
+export function deleteCategory(token: string, id: string) {
+  return adminFetch<{ success: boolean }>(`/categories/${id}`, token, {
+    method: "DELETE",
+  });
 }
 
 // ---------- 訂單 ----------
@@ -149,4 +181,29 @@ export function updateUserRole(token: string, userId: string, role: string) {
       body: JSON.stringify({ role }),
     },
   );
+}
+
+// ---------- 統計數據 ----------
+
+export function getAdminStats(token: string) {
+  return adminFetch<AdminStatsResponse>("/stats", token);
+}
+
+// ---------- 帳號安全 ----------
+
+export function changeAdminPassword(token: string, body: any) {
+  return fetch(`${API_URL}/api/v1/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  }).then(async (res) => {
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => null);
+      throw new Error(errBody?.message ?? "變更密碼失敗");
+    }
+    return res.json();
+  });
 }

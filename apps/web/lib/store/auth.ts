@@ -15,12 +15,18 @@ type AuthState = {
     name: string;
     phone?: string;
     address?: string;
+    code?: string;
+  }) => Promise<User>;
+  updateProfile: (data: {
+    name: string;
+    phone?: string;
+    address?: string;
   }) => Promise<User>;
   logout: () => void;
   initAuth: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   loading: false,
@@ -44,8 +50,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       window.localStorage.setItem("nanguado-user", JSON.stringify(user));
       set({ token, user });
 
-      // 登入後重新獲取購物車
-      await useCartStore.getState().fetchCart();
+      // 登入後重新獲取購物車（不因購物車失敗影響登入）
+      try {
+        await useCartStore.getState().fetchCart();
+      } catch (cartErr) {
+        console.error("登入後同步購物車失敗:", cartErr);
+      }
 
       return user;
     } finally {
@@ -71,10 +81,40 @@ export const useAuthStore = create<AuthState>((set) => ({
       window.localStorage.setItem("nanguado-user", JSON.stringify(user));
       set({ token, user });
 
-      // 註冊後重新獲取購物車（會因為 user 綁定而升級）
-      await useCartStore.getState().fetchCart();
+      // 註冊後重新獲取購物車（會因為 user 綁定而升級，不因購物車失敗影響註冊）
+      try {
+        await useCartStore.getState().fetchCart();
+      } catch (cartErr) {
+        console.error("註冊後同步購物車失敗:", cartErr);
+      }
 
       return user;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  updateProfile: async (data: { name: string; phone?: string; address?: string }) => {
+    const token = get().token;
+    if (!token) throw new Error("未登入");
+    set({ loading: true });
+    try {
+      const res = await fetch(`${API_URL}/api/v1/auth/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.message ?? "更新個人資訊失敗");
+      }
+
+      window.localStorage.setItem("nanguado-user", JSON.stringify(body));
+      set({ user: body });
+      return body as User;
     } finally {
       set({ loading: false });
     }

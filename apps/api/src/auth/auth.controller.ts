@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   UseGuards,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
@@ -27,5 +28,28 @@ export class AuthController {
   @UseGuards(AuthGuard)
   getMe(@CurrentUser() user: { userId: string }) {
     return this.authService.getMe(user.userId);
+  }
+
+  @Post("change-password")
+  @UseGuards(AuthGuard)
+  changePassword(
+    @CurrentUser() user: { userId: string },
+    @Body() body: any,
+  ) {
+    return this.authService.changePassword(user.userId, body);
+  }
+
+  @Post("send-verification")
+  sendVerification(@Body() body: { email: string }) {
+    return this.authService.sendVerificationCode(body?.email);
+  }
+
+  @Patch("profile")
+  @UseGuards(AuthGuard)
+  updateProfile(
+    @CurrentUser() user: { userId: string },
+    @Body() body: any,
+  ) {
+    return this.authService.updateProfile(user.userId, body);
   }
 }
