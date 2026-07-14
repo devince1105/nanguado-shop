@@ -23,11 +23,13 @@ export class AdminProductsController {
   @Get()
   list(
     @Query("search") search?: string,
+    @Query("categoryId") categoryId?: string,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
     return this.productsService.adminList({
       search,
+      categoryId,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     });

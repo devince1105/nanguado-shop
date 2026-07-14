@@ -41,6 +41,7 @@ async function adminFetch<T>(
 
 export type AdminProductQuery = {
   search?: string;
+  categoryId?: string;
   page?: number;
   limit?: number;
 };
@@ -62,6 +63,7 @@ export type ProductFormDto = {
 export function getAdminProducts(token: string, query: AdminProductQuery = {}) {
   const params = new URLSearchParams();
   if (query.search) params.set("search", query.search);
+  if (query.categoryId) params.set("categoryId", query.categoryId);
   if (query.page) params.set("page", String(query.page));
   if (query.limit) params.set("limit", String(query.limit));
   const qs = params.toString();

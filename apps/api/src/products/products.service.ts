@@ -128,7 +128,12 @@ export class ProductsService {
   // ---------- 後台管理 ----------
 
   /** 後台列表：不過濾 isActive，支援關鍵字搜尋與分頁 */
-  async adminList(query: { search?: string; page?: number; limit?: number }) {
+  async adminList(query: {
+    search?: string;
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const db = getDb();
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
@@ -136,6 +141,9 @@ export class ProductsService {
     const conditions: SQL[] = [];
     if (query.search?.trim()) {
       conditions.push(ilike(products.name, `%${query.search.trim()}%`));
+    }
+    if (query.categoryId) {
+      conditions.push(eq(products.categoryId, query.categoryId));
     }
     const where = conditions.length ? and(...conditions) : undefined;
 

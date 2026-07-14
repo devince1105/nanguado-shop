@@ -106,6 +106,7 @@ export default function AdminProductsPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   // null = 關閉；"new" = 新增；Product = 編輯
   const [editing, setEditing] = useState<Product | "new" | null>(null);
@@ -154,7 +155,12 @@ export default function AdminProductsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const data = await getAdminProducts(token, { search, page, limit: 10 });
+      const data = await getAdminProducts(token, {
+        search,
+        categoryId: categoryFilter || undefined,
+        page,
+        limit: 10,
+      });
       setProducts(data.items);
       setTotalPages(data.pagination.totalPages);
       setTotal(data.pagination.total);
@@ -163,7 +169,7 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, search, page, showToast]);
+  }, [token, search, categoryFilter, page, showToast]);
 
   useEffect(() => {
     fetchProducts();
@@ -353,6 +359,39 @@ export default function AdminProductsPage() {
           搜尋
         </button>
       </form>
+
+      {/* 分類篩選 pills */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          onClick={() => {
+            setCategoryFilter("");
+            setPage(1);
+          }}
+          className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            categoryFilter === ""
+              ? "bg-pumpkin-600 text-white"
+              : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100"
+          }`}
+        >
+          全部
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => {
+              setCategoryFilter(c.id);
+              setPage(1);
+            }}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              categoryFilter === c.id
+                ? "bg-pumpkin-600 text-white"
+                : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100"
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
 
       {/* 商品表格 */}
       <div className="mt-6 overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
