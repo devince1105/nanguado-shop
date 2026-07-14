@@ -14,7 +14,6 @@ const NAV_GROUPS = [
     items: [
       { slug: "about", title: "品牌故事" },
       { slug: "terms", title: "服務條款" },
-      { slug: "returns", title: "退換貨政策" },
       { slug: "privacy", title: "隱私權及網站使用條款" },
     ],
   },
@@ -22,6 +21,7 @@ const NAV_GROUPS = [
     heading: "客服資訊",
     items: [
       { slug: "shopping-guide", title: "購物說明" },
+      { slug: "returns", title: "退換貨政策" },
       { slug: "member-rights", title: "會員權益聲明" },
       { slug: "contact", title: "聯絡我們" },
     ],

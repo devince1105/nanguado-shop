@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { getCategories, getProducts } from "@/lib/api";
+import { getBanners, getCategories, getProducts } from "@/lib/api";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ProductGridSkeleton } from "@/components/products/ProductGridSkeleton";
+import { HeroCarousel } from "@/components/home/HeroCarousel";
 
 async function FeaturedProducts() {
   const data = await getProducts({ limit: 8 });
@@ -48,39 +49,41 @@ async function CategoryCards() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const banners = await getBanners();
+
   return (
     <div>
-      {/* Hero Banner */}
-      <section className="bg-gradient-to-br from-pumpkin-50 via-white to-pumpkin-100">
-        <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-20 text-center sm:px-6 sm:py-28">
-          <span className="rounded-full bg-pumpkin-100 px-4 py-1.5 text-sm font-medium text-pumpkin-700">
-            🎃 台灣原創設計商店
-          </span>
-          <h1 className="mt-6 text-4xl font-bold leading-tight text-neutral-900 sm:text-5xl">
-            把台灣味
-            <span className="text-pumpkin-600">穿在身上</span>
-          </h1>
-          <p className="mt-4 max-w-xl text-neutral-500">
-            從台灣黑熊到珍珠奶茶，南瓜多 Shop
-            精選台灣原創圖案商品，每一件都是屬於這座島嶼的故事。
-          </p>
-          <div className="mt-8 flex gap-3">
-            <Link
-              href="/products"
-              className="rounded-full bg-pumpkin-600 px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-pumpkin-700"
-            >
-              開始逛逛
-            </Link>
-            <Link
-              href="/categories/t-shirt"
-              className="rounded-full border border-neutral-300 bg-white px-8 py-3 text-sm font-bold text-neutral-700 transition-colors hover:border-pumpkin-500 hover:text-pumpkin-600"
-            >
-              熱門 T 恤
-            </Link>
+      {/* Hero：有輪播橫幅則顯示 Carousel，否則預設 Hero */}
+      {banners.length > 0 ? (
+        <HeroCarousel banners={banners} />
+      ) : (
+        <section className="bg-gradient-to-br from-pumpkin-50 via-white to-pumpkin-100">
+          <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-20 text-center sm:px-6 sm:py-28">
+            <h1 className="text-4xl font-bold leading-tight text-neutral-900 sm:text-5xl">
+              把喜歡的
+              <span className="text-pumpkin-600">穿在身上</span>
+            </h1>
+            <p className="mt-4 max-w-xl text-neutral-500">
+              精選原創圖案商品，每一件都有屬於自己的故事。
+            </p>
+            <div className="mt-8 flex gap-3">
+              <Link
+                href="/products"
+                className="rounded-full bg-pumpkin-600 px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-pumpkin-700"
+              >
+                開始逛逛
+              </Link>
+              <Link
+                href="/categories/t-shirt"
+                className="rounded-full border border-neutral-300 bg-white px-8 py-3 text-sm font-bold text-neutral-700 transition-colors hover:border-pumpkin-500 hover:text-pumpkin-600"
+              >
+                熱門 T 恤
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 分類卡片 */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">

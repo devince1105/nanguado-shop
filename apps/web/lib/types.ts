@@ -196,6 +196,19 @@ export type MediaMeta = {
   tags: string[];
 };
 
+/** 首頁輪播橫幅 */
+export type Banner = {
+  id: string;
+  imageUrl: string;
+  title: string;
+  subtitle: string | null;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
 /** 網站設定（白牌：店名 / 標語 / Emoji） */
 export type SiteSettings = {
   shopName: string;

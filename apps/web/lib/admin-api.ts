@@ -15,6 +15,7 @@ import type {
   MediaMeta,
   Page,
   SiteSettings,
+  Banner,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -224,6 +225,42 @@ export function updatePage(
 
 export function getAdminSettings(token: string) {
   return adminFetch<SiteSettings>("/settings", token);
+}
+
+// ---------- 首頁輪播橫幅 ----------
+
+export type BannerFormDto = {
+  imageUrl?: string;
+  title?: string;
+  subtitle?: string | null;
+  linkUrl?: string | null;
+  linkLabel?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+};
+
+export function getAdminBanners(token: string) {
+  return adminFetch<Banner[]>("/banners", token);
+}
+
+export function createBanner(token: string, dto: BannerFormDto) {
+  return adminFetch<Banner>("/banners", token, {
+    method: "POST",
+    body: JSON.stringify(dto),
+  });
+}
+
+export function updateBanner(token: string, id: string, dto: BannerFormDto) {
+  return adminFetch<Banner>(`/banners/${id}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(dto),
+  });
+}
+
+export function deleteBanner(token: string, id: string) {
+  return adminFetch<{ success: boolean }>(`/banners/${id}`, token, {
+    method: "DELETE",
+  });
 }
 
 export function updateSettings(token: string, dto: Partial<SiteSettings>) {

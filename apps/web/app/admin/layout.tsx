@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/admin/categories", label: "分類管理", icon: "🏷️" },
   { href: "/admin/orders", label: "訂單管理", icon: "🧾" },
   { href: "/admin/users", label: "會員管理", icon: "👤" },
+  { href: "/admin/banners", label: "首頁輪播", icon: "🖥️" },
   { href: "/admin/pages", label: "頁面內容", icon: "📄" },
   { href: "/admin/store", label: "商店設定", icon: "🏪" },
   { href: "/admin/settings", label: "帳號設定", icon: "⚙️" },

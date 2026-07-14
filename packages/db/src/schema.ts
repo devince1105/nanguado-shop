@@ -259,6 +259,25 @@ export const pages = pgTable("pages", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ---------- 首頁輪播橫幅（Carousel / 活動主題）----------
+export const banners = pgTable("banners", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  /** 背景圖 URL（可由媒體庫上傳） */
+  imageUrl: text("image_url").notNull(),
+  /** 主標題 */
+  title: varchar("title", { length: 200 }).notNull().default(""),
+  /** 副標題 / 描述 */
+  subtitle: text("subtitle"),
+  /** 按鈕連結（活動頁 / 商品）與文字 */
+  linkUrl: varchar("link_url", { length: 500 }),
+  linkLabel: varchar("link_label", { length: 100 }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ---------- 網站設定（白牌：店名 / 標語 / Emoji 等鍵值）----------
 export const settings = pgTable("settings", {
   key: varchar("key", { length: 64 }).primaryKey(),
@@ -297,3 +316,5 @@ export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
 export type Setting = typeof settings.$inferSelect;
 export type NewSetting = typeof settings.$inferInsert;
+export type Banner = typeof banners.$inferSelect;
+export type NewBanner = typeof banners.$inferInsert;

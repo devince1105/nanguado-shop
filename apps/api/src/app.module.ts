@@ -10,6 +10,7 @@ import { ReviewsModule } from "./reviews/reviews.module";
 import { MediaModule } from "./media/media.module";
 import { PagesModule } from "./pages/pages.module";
 import { SettingsModule } from "./settings/settings.module";
+import { BannersModule } from "./banners/banners.module";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SettingsModule } from "./settings/settings.module";
     MediaModule,
     PagesModule,
     SettingsModule,
+    BannersModule,
   ],
 })
 export class AppModule {}

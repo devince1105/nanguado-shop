@@ -1,4 +1,5 @@
 import type {
+  Banner,
   Category,
   Page,
   Product,
@@ -56,6 +57,15 @@ export function getCategories() {
 
 export function getPage(slug: string) {
   return apiFetch<Page>(`/pages/${slug}`);
+}
+
+/** 取得首頁輪播橫幅；失敗回空陣列 */
+export async function getBanners(): Promise<Banner[]> {
+  try {
+    return await apiFetch<Banner[]>("/banners");
+  } catch {
+    return [];
+  }
 }
 
 /** 取得網站設定；失敗時回預設值（避免整頁掛掉） */
