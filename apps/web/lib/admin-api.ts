@@ -196,6 +196,27 @@ export function getAdminEnvironment(token: string) {
   return adminFetch<AdminEnvironmentResponse>("/environment", token);
 }
 
+// ---------- 圖片上傳（R2）----------
+
+/** 上傳商品圖片到 R2，回傳公開 URL。用 multipart，不套用 adminFetch 的 JSON header */
+export async function uploadProductImage(
+  token: string,
+  file: File,
+): Promise<{ url: string }> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/api/v1/admin/uploads`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `圖片上傳失敗（${res.status}）`);
+  }
+  return res.json();
+}
+
 // ---------- 帳號安全 ----------
 
 export function changeAdminPassword(token: string, body: any) {

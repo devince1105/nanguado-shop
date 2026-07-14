@@ -11,6 +11,7 @@ import {
   getAdminCategories,
   getAdminProducts,
   updateProduct,
+  uploadProductImage,
   type ProductFormDto,
 } from "@/lib/admin-api";
 import type { Category, Product, ProductVariant } from "@/lib/types";
@@ -111,6 +112,32 @@ export default function AdminProductsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<Product | null>(null);
   const [useVariantStock, setUseVariantStock] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // 選擇檔案後上傳到 R2，成功則把公開 URL 追加到圖片清單
+  async function handleImageUpload(files: FileList | null) {
+    if (!token || !files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        const { url } = await uploadProductImage(token, file);
+        urls.push(url);
+      }
+      setForm((prev) => {
+        const existing = prev.images.trim();
+        return {
+          ...prev,
+          images: [existing, ...urls].filter(Boolean).join("\n"),
+        };
+      });
+      showToast(`已上傳 ${urls.length} 張圖片`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "圖片上傳失敗", "error");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const fetchProducts = useCallback(async () => {
     if (!token) return;
@@ -636,15 +663,60 @@ export default function AdminProductsPage() {
               </label>
 
               <label className="block">
-                <span className="text-xs font-semibold text-neutral-600">
-                  圖片 URL（每行一個）
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-neutral-600">
+                    商品圖片（可上傳，或每行一個 URL）
+                  </span>
+                  <label
+                    className={`cursor-pointer text-xs font-bold transition-colors ${
+                      uploading
+                        ? "text-neutral-400"
+                        : "text-pumpkin-600 hover:text-pumpkin-700"
+                    }`}
+                  >
+                    {uploading ? "上傳中…" : "＋ 上傳圖片"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={uploading}
+                      onChange={(e) => {
+                        handleImageUpload(e.target.files);
+                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
                 <textarea
                   rows={3}
                   value={form.images}
                   onChange={(e) => setForm({ ...form, images: e.target.value })}
+                  placeholder="上傳後會自動填入公開網址，也可手動貼上 URL"
                   className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm font-mono focus:border-pumpkin-400 focus:outline-none"
                 />
+                {form.images.trim() && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {form.images
+                      .split("\n")
+                      .map((u) => u.trim())
+                      .filter(Boolean)
+                      .map((url, i) => (
+                        <div
+                          key={`${url}-${i}`}
+                          className="relative h-16 w-16 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100"
+                        >
+                          {/* 預覽用一般 img，避免未列入 next.config 的網域報錯 */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`預覽 ${i + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ))}
+                  </div>
+                )}
               </label>
 
               <div className="border-t border-neutral-100 pt-4 mt-2 space-y-4">
