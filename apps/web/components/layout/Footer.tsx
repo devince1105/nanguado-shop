@@ -10,8 +10,33 @@ export function Footer() {
             <span className="font-bold">南瓜多 Shop</span>
           </div>
           <p className="mt-3 text-sm leading-6 text-neutral-500">
-            台灣原創設計商店，把台灣味穿在身上。
+            原創設計商店，把喜歡的穿在身上。
           </p>
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-neutral-900">關於我們</h3>
+          <ul className="mt-3 space-y-2 text-sm text-neutral-500">
+            <li>
+              <Link href="/pages/about" className="hover:text-pumpkin-600">
+                品牌故事
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/terms" className="hover:text-pumpkin-600">
+                服務條款
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/returns" className="hover:text-pumpkin-600">
+                退換貨政策
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/privacy" className="hover:text-pumpkin-600">
+                隱私權及網站使用條款
+              </Link>
+            </li>
+          </ul>
         </div>
         <div>
           <h3 className="text-sm font-semibold text-neutral-900">購物分類</h3>
@@ -35,31 +60,6 @@ export function Footer() {
                 className="hover:text-pumpkin-600"
               >
                 文創小物
-              </Link>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-neutral-900">關於我們</h3>
-          <ul className="mt-3 space-y-2 text-sm text-neutral-500">
-            <li>
-              <Link href="/pages/about" className="hover:text-pumpkin-600">
-                品牌故事
-              </Link>
-            </li>
-            <li>
-              <Link href="/pages/terms" className="hover:text-pumpkin-600">
-                服務條款
-              </Link>
-            </li>
-            <li>
-              <Link href="/pages/returns" className="hover:text-pumpkin-600">
-                退換貨政策
-              </Link>
-            </li>
-            <li>
-              <Link href="/pages/privacy" className="hover:text-pumpkin-600">
-                隱私權及網站使用條款
               </Link>
             </li>
           </ul>
