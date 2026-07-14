@@ -1,4 +1,18 @@
-import type { Category, Page, Product, ProductListResponse } from "./types";
+import type {
+  Category,
+  Page,
+  Product,
+  ProductListResponse,
+  SiteSettings,
+} from "./types";
+
+const DEFAULT_SETTINGS: SiteSettings = {
+  shopName: "南瓜多 Shop",
+  shopTagline: "原創設計商店，把喜歡的穿在身上。",
+  shopEmoji: "🎃",
+  shopDescription:
+    "南瓜多 Shop — 原創 T 恤、帽子配件與文創小物，把喜歡的穿在身上。",
+};
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -42,6 +56,15 @@ export function getCategories() {
 
 export function getPage(slug: string) {
   return apiFetch<Page>(`/pages/${slug}`);
+}
+
+/** 取得網站設定；失敗時回預設值（避免整頁掛掉） */
+export async function getSettings(): Promise<SiteSettings> {
+  try {
+    return await apiFetch<SiteSettings>("/settings");
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
 }
 
 /** 價格顯示：NT$1,280 */

@@ -1,16 +1,24 @@
 import Link from "next/link";
 
-export function Footer() {
+export function Footer({
+  shopName = "南瓜多 Shop",
+  shopEmoji = "🎃",
+  shopTagline = "原創設計商店，把喜歡的穿在身上。",
+}: {
+  shopName?: string;
+  shopEmoji?: string;
+  shopTagline?: string;
+}) {
   return (
     <footer className="mt-16 border-t border-neutral-100 bg-neutral-50">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xl">🎃</span>
-            <span className="font-bold">南瓜多 Shop</span>
+            <span className="text-xl">{shopEmoji}</span>
+            <span className="font-bold">{shopName}</span>
           </div>
           <p className="mt-3 text-sm leading-6 text-neutral-500">
-            原創設計商店，把喜歡的穿在身上。
+            {shopTagline}
           </p>
         </div>
         <div>
@@ -92,7 +100,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-neutral-100 py-4 text-center text-xs text-neutral-400">
-        © {new Date().getFullYear()} 南瓜多 Shop. All rights reserved.
+        © {new Date().getFullYear()} {shopName}. All rights reserved.
       </div>
     </footer>
   );

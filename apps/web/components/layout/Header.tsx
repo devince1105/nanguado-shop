@@ -15,7 +15,13 @@ const NAV_LINKS = [
   { href: "/categories/cultural-goods", label: "文創小物" },
 ];
 
-export function Header() {
+export function Header({
+  shopName = "南瓜多 Shop",
+  shopEmoji = "🎃",
+}: {
+  shopName?: string;
+  shopEmoji?: string;
+}) {
   const pathname = usePathname();
   const itemCount = useCartStore(selectItemCount);
   const fetchCart = useCartStore((s) => s.fetchCart);
@@ -82,10 +88,8 @@ export function Header() {
 
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2">
-          <span className="text-2xl">🎃</span>
-          <span className="text-lg font-bold tracking-wide">
-            南瓜多 <span className="text-pumpkin-600">Shop</span>
-          </span>
+          <span className="text-2xl">{shopEmoji}</span>
+          <span className="text-lg font-bold tracking-wide">{shopName}</span>
         </Link>
 
         {/* 導航（桌面） */}

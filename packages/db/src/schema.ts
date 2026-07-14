@@ -259,6 +259,13 @@ export const pages = pgTable("pages", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ---------- 網站設定（白牌：店名 / 標語 / Emoji 等鍵值）----------
+export const settings = pgTable("settings", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  value: text("value").notNull().default(""),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ---------- 驗證碼 ----------
 export const verificationCodes = pgTable("verification_codes", {
   id: varchar("id", { length: 36 })
@@ -288,3 +295,5 @@ export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
+export type Setting = typeof settings.$inferSelect;
+export type NewSetting = typeof settings.$inferInsert;

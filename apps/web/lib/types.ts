@@ -196,6 +196,14 @@ export type MediaMeta = {
   tags: string[];
 };
 
+/** 網站設定（白牌：店名 / 標語 / Emoji） */
+export type SiteSettings = {
+  shopName: string;
+  shopTagline: string;
+  shopEmoji: string;
+  shopDescription: string;
+};
+
 /** 內容頁面（關於我們 / 服務條款 / 聯絡我們 / 退換貨政策） */
 export type Page = {
   slug: string;

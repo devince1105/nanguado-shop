@@ -14,6 +14,7 @@ import type {
   MediaListResponse,
   MediaMeta,
   Page,
+  SiteSettings,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -214,6 +215,19 @@ export function updatePage(
   dto: { title?: string; content?: string },
 ) {
   return adminFetch<Page>(`/pages/${slug}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(dto),
+  });
+}
+
+// ---------- 商店設定（白牌）----------
+
+export function getAdminSettings(token: string) {
+  return adminFetch<SiteSettings>("/settings", token);
+}
+
+export function updateSettings(token: string, dto: Partial<SiteSettings>) {
+  return adminFetch<SiteSettings>("/settings", token, {
     method: "PATCH",
     body: JSON.stringify(dto),
   });
