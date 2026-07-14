@@ -7,15 +7,27 @@ import { Breadcrumbs } from "@/components/products/Breadcrumbs";
 
 type Props = { params: Promise<{ slug: string }> };
 
-/** 商店訊息頁面導覽（固定集合） */
-const NAV = [
-  { slug: "about", title: "關於我們" },
-  { slug: "terms", title: "服務條款" },
-  { slug: "contact", title: "聯絡我們" },
-  { slug: "returns", title: "退換貨政策" },
+/** 內容頁面導覽（分兩群組） */
+const NAV_GROUPS = [
+  {
+    heading: "關於我們",
+    items: [
+      { slug: "about", title: "品牌故事" },
+      { slug: "terms", title: "服務條款" },
+      { slug: "returns", title: "退換貨政策" },
+    ],
+  },
+  {
+    heading: "客服資訊",
+    items: [
+      { slug: "shopping-guide", title: "購物說明" },
+      { slug: "member-rights", title: "會員權益聲明" },
+      { slug: "contact", title: "聯絡我們" },
+    ],
+  },
 ];
 
-const KNOWN = NAV.map((n) => n.slug);
+const KNOWN = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.slug));
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -46,25 +58,33 @@ export default async function ContentPage({ params }: Props) {
       <div className="mt-6 gap-10 lg:flex">
       {/* 左側導覽 */}
       <aside className="mb-8 shrink-0 lg:mb-0 lg:w-56">
-        <h2 className="text-sm font-bold text-neutral-900">商店訊息</h2>
-        <nav className="mt-3 flex gap-2 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
-          {NAV.map((item) => {
-            const active = item.slug === slug;
-            return (
-              <Link
-                key={item.slug}
-                href={`/pages/${item.slug}`}
-                className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-pumpkin-50 text-pumpkin-700"
-                    : "text-neutral-600 hover:bg-neutral-100"
-                }`}
-              >
-                {item.title}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="space-y-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.heading}>
+              <h2 className="text-sm font-bold text-neutral-900">
+                {group.heading}
+              </h2>
+              <nav className="mt-2 flex gap-2 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
+                {group.items.map((item) => {
+                  const active = item.slug === slug;
+                  return (
+                    <Link
+                      key={item.slug}
+                      href={`/pages/${item.slug}`}
+                      className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-pumpkin-50 text-pumpkin-700"
+                          : "text-neutral-600 hover:bg-neutral-100"
+                      }`}
+                    >
+                      {item.title}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
+        </div>
       </aside>
 
       {/* 內容 */}

@@ -40,19 +40,11 @@ export function Footer() {
           </ul>
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-neutral-900">購物資訊</h3>
-          <ul className="mt-3 space-y-2 text-sm text-neutral-500">
-            <li>滿 NT$1,000 免運費</li>
-            <li>7 天鑑賞期</li>
-            <li>綠界科技安全付款</li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-neutral-900">商店訊息</h3>
+          <h3 className="text-sm font-semibold text-neutral-900">關於我們</h3>
           <ul className="mt-3 space-y-2 text-sm text-neutral-500">
             <li>
               <Link href="/pages/about" className="hover:text-pumpkin-600">
-                關於我們
+                品牌故事
               </Link>
             </li>
             <li>
@@ -61,13 +53,34 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link href="/pages/contact" className="hover:text-pumpkin-600">
-                聯絡我們
+              <Link href="/pages/returns" className="hover:text-pumpkin-600">
+                退換貨政策
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-neutral-900">客服資訊</h3>
+          <ul className="mt-3 space-y-2 text-sm text-neutral-500">
+            <li>
+              <Link
+                href="/pages/shopping-guide"
+                className="hover:text-pumpkin-600"
+              >
+                購物說明
               </Link>
             </li>
             <li>
-              <Link href="/pages/returns" className="hover:text-pumpkin-600">
-                退換貨政策
+              <Link
+                href="/pages/member-rights"
+                className="hover:text-pumpkin-600"
+              >
+                會員權益聲明
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/contact" className="hover:text-pumpkin-600">
+                聯絡我們
               </Link>
             </li>
           </ul>
