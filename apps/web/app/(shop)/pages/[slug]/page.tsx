@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { getPage } from "@/lib/api";
+import { Breadcrumbs } from "@/components/products/Breadcrumbs";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -38,7 +39,11 @@ export default async function ContentPage({ params }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:flex">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+      <Breadcrumbs
+        crumbs={[{ label: "首頁", href: "/" }, { label: page.title }]}
+      />
+      <div className="mt-6 gap-10 lg:flex">
       {/* 左側導覽 */}
       <aside className="mb-8 shrink-0 lg:mb-0 lg:w-56">
         <h2 className="text-sm font-bold text-neutral-900">商店訊息</h2>
@@ -84,6 +89,7 @@ export default async function ContentPage({ params }: Props) {
           </p>
         )}
       </article>
+      </div>
     </div>
   );
 }
