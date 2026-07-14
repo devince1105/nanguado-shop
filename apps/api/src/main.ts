@@ -12,8 +12,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix("api/v1");
+  // 允許本機開發前台 + 正式前台（WEB_BASE_URL，逗號可分隔多個網域）
+  const allowedOrigins = [
+    "http://localhost:3000",
+    ...(process.env.WEB_BASE_URL?.split(",").map((o) => o.trim()) ?? []),
+  ].filter(Boolean);
   app.enableCors({
-    origin: ["http://localhost:3000"],
+    origin: allowedOrigins,
     credentials: true,
   });
 
