@@ -15,6 +15,7 @@ const NAV_GROUPS = [
       { slug: "about", title: "品牌故事" },
       { slug: "terms", title: "服務條款" },
       { slug: "returns", title: "退換貨政策" },
+      { slug: "privacy", title: "隱私權及網站使用條款" },
     ],
   },
   {

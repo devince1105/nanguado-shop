@@ -57,6 +57,11 @@ export function Footer() {
                 退換貨政策
               </Link>
             </li>
+            <li>
+              <Link href="/pages/privacy" className="hover:text-pumpkin-600">
+                隱私權及網站使用條款
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
