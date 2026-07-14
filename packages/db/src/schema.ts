@@ -246,6 +246,19 @@ export const media = pgTable("media", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ---------- 內容頁面（關於我們 / 服務條款 / 聯絡我們 / 退換貨政策）----------
+export const pages = pgTable("pages", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  /** 頁面代稱：about / terms / contact / returns */
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  title: varchar("title", { length: 200 }).notNull(),
+  /** Markdown 內容 */
+  content: text("content").notNull().default(""),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ---------- 驗證碼 ----------
 export const verificationCodes = pgTable("verification_codes", {
   id: varchar("id", { length: 36 })
@@ -273,3 +286,5 @@ export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
+export type Page = typeof pages.$inferSelect;
+export type NewPage = typeof pages.$inferInsert;

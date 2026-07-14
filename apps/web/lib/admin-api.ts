@@ -13,6 +13,7 @@ import type {
   Media,
   MediaListResponse,
   MediaMeta,
+  Page,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -199,6 +200,23 @@ export function getAdminStats(token: string) {
 
 export function getAdminEnvironment(token: string) {
   return adminFetch<AdminEnvironmentResponse>("/environment", token);
+}
+
+// ---------- 內容頁面 ----------
+
+export function getAdminPages(token: string) {
+  return adminFetch<Page[]>("/pages", token);
+}
+
+export function updatePage(
+  token: string,
+  slug: string,
+  dto: { title?: string; content?: string },
+) {
+  return adminFetch<Page>(`/pages/${slug}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(dto),
+  });
 }
 
 // ---------- 媒體庫（Cloudflare R2）----------

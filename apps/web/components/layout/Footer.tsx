@@ -3,7 +3,7 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="mt-16 border-t border-neutral-100 bg-neutral-50">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-3">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xl">🎃</span>
@@ -45,6 +45,31 @@ export function Footer() {
             <li>滿 NT$1,000 免運費</li>
             <li>7 天鑑賞期</li>
             <li>綠界科技安全付款</li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-neutral-900">商店訊息</h3>
+          <ul className="mt-3 space-y-2 text-sm text-neutral-500">
+            <li>
+              <Link href="/pages/about" className="hover:text-pumpkin-600">
+                關於我們
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/terms" className="hover:text-pumpkin-600">
+                服務條款
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/contact" className="hover:text-pumpkin-600">
+                聯絡我們
+              </Link>
+            </li>
+            <li>
+              <Link href="/pages/returns" className="hover:text-pumpkin-600">
+                退換貨政策
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

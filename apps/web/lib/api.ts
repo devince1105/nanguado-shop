@@ -1,4 +1,4 @@
-import type { Category, Product, ProductListResponse } from "./types";
+import type { Category, Page, Product, ProductListResponse } from "./types";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -38,6 +38,10 @@ export function getProduct(slug: string) {
 
 export function getCategories() {
   return apiFetch<Category[]>("/categories");
+}
+
+export function getPage(slug: string) {
+  return apiFetch<Page>(`/pages/${slug}`);
 }
 
 /** 價格顯示：NT$1,280 */

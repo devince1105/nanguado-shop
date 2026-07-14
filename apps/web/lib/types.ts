@@ -196,6 +196,14 @@ export type MediaMeta = {
   tags: string[];
 };
 
+/** 內容頁面（關於我們 / 服務條款 / 聯絡我們 / 退換貨政策） */
+export type Page = {
+  slug: string;
+  title: string;
+  content: string;
+  updatedAt: string | null;
+};
+
 export type MediaListResponse = {
   items: Media[];
   pagination: {
