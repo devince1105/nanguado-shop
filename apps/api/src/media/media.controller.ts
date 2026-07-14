@@ -25,26 +25,40 @@ export class MediaController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
     @Query("search") search?: string,
+    @Query("folder") folder?: string,
+    @Query("tag") tag?: string,
   ) {
     return this.mediaService.list({
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       search,
+      folder,
+      tag,
     });
+  }
+
+  /** 篩選用的資料夾清單與標籤 */
+  @Get("meta")
+  meta() {
+    return this.mediaService.meta();
   }
 
   @Post()
   @UseInterceptors(
     FileInterceptor("file", { limits: { fileSize: 10 * 1024 * 1024 } }),
   )
-  upload(@UploadedFile() file: UploadedImage) {
-    return this.mediaService.upload(file, "products");
+  upload(
+    @UploadedFile() file: UploadedImage,
+    @Body("folder") folder?: string,
+  ) {
+    return this.mediaService.upload(file, "products", folder);
   }
 
   @Patch(":id")
   update(
     @Param("id") id: string,
-    @Body() dto: { alt?: string; caption?: string },
+    @Body()
+    dto: { alt?: string; caption?: string; folder?: string | null; tags?: string[] },
   ) {
     return this.mediaService.update(id, dto);
   }

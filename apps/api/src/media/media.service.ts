@@ -54,7 +54,7 @@ export class MediaService {
   }
 
   /** 上傳一張圖片到 R2，並在 media 表建立記錄 */
-  async upload(file: UploadedImage, prefix = "media") {
+  async upload(file: UploadedImage, prefix = "media", folder?: string | null) {
     if (!file) throw new BadRequestException("未收到檔案");
     const ext = ALLOWED_MIME.get(file.mimetype);
     if (!ext) {
@@ -94,19 +94,32 @@ export class MediaService {
         mimeType: file.mimetype,
         size: file.size,
         prefix: safePrefix,
+        folder: folder?.trim() || null,
       })
       .returning();
     return row;
   }
 
-  /** 分頁列出媒體，可依檔名搜尋 */
-  async list(params: { page?: number; limit?: number; search?: string }) {
+  /** 分頁列出媒體，可依檔名搜尋、資料夾、標籤篩選（可疊加） */
+  async list(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    folder?: string;
+    tag?: string;
+  }) {
     const db = getDb();
     const page = Math.max(1, params.page ?? 1);
-    const limit = Math.min(50, Math.max(1, params.limit ?? 20));
-    const where = params.search
-      ? ilike(media.filename, `%${params.search}%`)
-      : undefined;
+    const limit = Math.min(50, Math.max(1, params.limit ?? 24));
+
+    const conds = [];
+    if (params.search) conds.push(ilike(media.filename, `%${params.search}%`));
+    if (params.folder === "__none__") conds.push(sql`${media.folder} is null`);
+    else if (params.folder) conds.push(eq(media.folder, params.folder));
+    if (params.tag) {
+      conds.push(sql`${media.tags} @> ${JSON.stringify([params.tag])}::jsonb`);
+    }
+    const where = conds.length ? and(...conds) : undefined;
 
     const items = await db
       .select()
@@ -132,14 +145,50 @@ export class MediaService {
     };
   }
 
-  /** 更新 alt / 圖片說明 */
-  async update(id: string, dto: { alt?: string; caption?: string }) {
+  /** 提供篩選用的資料夾清單與所有標籤 */
+  async meta() {
+    const db = getDb();
+    const folderRows = await db
+      .selectDistinct({ folder: media.folder })
+      .from(media);
+    const folders = folderRows
+      .map((r) => r.folder)
+      .filter((f): f is string => !!f)
+      .sort();
+
+    const tagRows = await db.select({ tags: media.tags }).from(media);
+    const tagSet = new Set<string>();
+    for (const r of tagRows) (r.tags ?? []).forEach((t) => tagSet.add(t));
+
+    return { folders, tags: Array.from(tagSet).sort() };
+  }
+
+  /** 更新 alt / 圖片說明 / 資料夾 / 標籤 */
+  async update(
+    id: string,
+    dto: {
+      alt?: string;
+      caption?: string;
+      folder?: string | null;
+      tags?: string[];
+    },
+  ) {
     const db = getDb();
     const [row] = await db
       .update(media)
       .set({
         ...(dto.alt !== undefined ? { alt: dto.alt } : {}),
         ...(dto.caption !== undefined ? { caption: dto.caption } : {}),
+        ...(dto.folder !== undefined
+          ? { folder: dto.folder?.trim() || null }
+          : {}),
+        ...(dto.tags !== undefined
+          ? {
+              tags: Array.from(
+                new Set(dto.tags.map((t) => t.trim()).filter(Boolean)),
+              ),
+            }
+          : {}),
       })
       .where(eq(media.id, id))
       .returning();

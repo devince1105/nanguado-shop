@@ -138,7 +138,7 @@ export default function AdminProductsPage() {
     try {
       const urls: string[] = [];
       for (const file of list) {
-        const uploaded = await uploadMedia(token, file);
+        const uploaded = await uploadMedia(token, file, "商品圖");
         urls.push(uploaded.url);
       }
       appendImageUrls(urls);

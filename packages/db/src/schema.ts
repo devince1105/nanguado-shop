@@ -235,6 +235,10 @@ export const media = pgTable("media", {
   size: integer("size").notNull().default(0),
   /** key 的前綴分類，例如 media / products */
   prefix: varchar("prefix", { length: 64 }).notNull().default("media"),
+  /** 資料夾 / 單一主分類（可自訂，null = 未分類） */
+  folder: varchar("folder", { length: 120 }),
+  /** 標籤（多個，可交叉篩選） */
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
   /** 替代文字（無障礙 / SEO） */
   alt: text("alt"),
   /** 圖片說明 */

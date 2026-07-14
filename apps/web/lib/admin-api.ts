@@ -12,6 +12,7 @@ import type {
   AdminEnvironmentResponse,
   Media,
   MediaListResponse,
+  MediaMeta,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -201,9 +202,14 @@ export function getAdminEnvironment(token: string) {
 // ---------- 媒體庫（Cloudflare R2）----------
 
 /** 上傳圖片到 R2 + 建立媒體記錄，回傳 Media。用 multipart，不套用 JSON header */
-export async function uploadMedia(token: string, file: File): Promise<Media> {
+export async function uploadMedia(
+  token: string,
+  file: File,
+  folder?: string | null,
+): Promise<Media> {
   const fd = new FormData();
   fd.append("file", file);
+  if (folder) fd.append("folder", folder);
   const res = await fetch(`${API_URL}/api/v1/admin/media`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -216,21 +222,33 @@ export async function uploadMedia(token: string, file: File): Promise<Media> {
   return res.json();
 }
 
-export type MediaQuery = { page?: number; limit?: number; search?: string };
+export type MediaQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  folder?: string;
+  tag?: string;
+};
 
 export function getMediaList(token: string, query: MediaQuery = {}) {
   const params = new URLSearchParams();
   if (query.page) params.set("page", String(query.page));
   if (query.limit) params.set("limit", String(query.limit));
   if (query.search) params.set("search", query.search);
+  if (query.folder) params.set("folder", query.folder);
+  if (query.tag) params.set("tag", query.tag);
   const qs = params.toString();
   return adminFetch<MediaListResponse>(`/media${qs ? `?${qs}` : ""}`, token);
+}
+
+export function getMediaMeta(token: string) {
+  return adminFetch<MediaMeta>("/media/meta", token);
 }
 
 export function updateMedia(
   token: string,
   id: string,
-  dto: { alt?: string; caption?: string },
+  dto: { alt?: string; caption?: string; folder?: string | null; tags?: string[] },
 ) {
   return adminFetch<Media>(`/media/${id}`, token, {
     method: "PATCH",

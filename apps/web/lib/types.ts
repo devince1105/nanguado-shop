@@ -184,9 +184,16 @@ export type Media = {
   mimeType: string;
   size: number;
   prefix: string;
+  folder: string | null;
+  tags: string[];
   alt: string | null;
   caption: string | null;
   createdAt: string;
+};
+
+export type MediaMeta = {
+  folders: string[];
+  tags: string[];
 };
 
 export type MediaListResponse = {
