@@ -10,6 +10,8 @@ import type {
   ProductVariant,
   AdminStatsResponse,
   AdminEnvironmentResponse,
+  Media,
+  MediaListResponse,
 } from "./types";
 
 /** 後台 API 皆需 Bearer token（role=admin） */
@@ -196,16 +198,13 @@ export function getAdminEnvironment(token: string) {
   return adminFetch<AdminEnvironmentResponse>("/environment", token);
 }
 
-// ---------- 圖片上傳（R2）----------
+// ---------- 媒體庫（Cloudflare R2）----------
 
-/** 上傳商品圖片到 R2，回傳公開 URL。用 multipart，不套用 adminFetch 的 JSON header */
-export async function uploadProductImage(
-  token: string,
-  file: File,
-): Promise<{ url: string }> {
+/** 上傳圖片到 R2 + 建立媒體記錄，回傳 Media。用 multipart，不套用 JSON header */
+export async function uploadMedia(token: string, file: File): Promise<Media> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch(`${API_URL}/api/v1/admin/uploads`, {
+  const res = await fetch(`${API_URL}/api/v1/admin/media`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: fd,
@@ -215,6 +214,34 @@ export async function uploadProductImage(
     throw new Error(body?.message ?? `圖片上傳失敗（${res.status}）`);
   }
   return res.json();
+}
+
+export type MediaQuery = { page?: number; limit?: number; search?: string };
+
+export function getMediaList(token: string, query: MediaQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.search) params.set("search", query.search);
+  const qs = params.toString();
+  return adminFetch<MediaListResponse>(`/media${qs ? `?${qs}` : ""}`, token);
+}
+
+export function updateMedia(
+  token: string,
+  id: string,
+  dto: { alt?: string; caption?: string },
+) {
+  return adminFetch<Media>(`/media/${id}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(dto),
+  });
+}
+
+export function deleteMedia(token: string, id: string) {
+  return adminFetch<{ success: boolean }>(`/media/${id}`, token, {
+    method: "DELETE",
+  });
 }
 
 // ---------- 帳號安全 ----------

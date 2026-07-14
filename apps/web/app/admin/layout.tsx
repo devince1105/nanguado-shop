@@ -10,6 +10,7 @@ import type { AdminEnvironmentResponse } from "@/lib/types";
 const NAV_ITEMS = [
   { href: "/admin", label: "儀表板", icon: "📊" },
   { href: "/admin/products", label: "商品管理", icon: "📦" },
+  { href: "/admin/media", label: "媒體庫", icon: "🖼️" },
   { href: "/admin/categories", label: "分類管理", icon: "🏷️" },
   { href: "/admin/orders", label: "訂單管理", icon: "🧾" },
   { href: "/admin/users", label: "會員管理", icon: "👤" },

@@ -7,7 +7,7 @@ import { EcpayModule } from "./ecpay/ecpay.module";
 import { AuthModule } from "./auth/auth.module";
 import { AdminModule } from "./admin/admin.module";
 import { ReviewsModule } from "./reviews/reviews.module";
-import { UploadsModule } from "./uploads/uploads.module";
+import { MediaModule } from "./media/media.module";
 
 @Module({
   imports: [
@@ -19,7 +19,7 @@ import { UploadsModule } from "./uploads/uploads.module";
     AuthModule,
     AdminModule,
     ReviewsModule,
-    UploadsModule,
+    MediaModule,
   ],
 })
 export class AppModule {}

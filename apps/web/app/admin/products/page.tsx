@@ -11,10 +11,11 @@ import {
   getAdminCategories,
   getAdminProducts,
   updateProduct,
-  uploadProductImage,
+  uploadMedia,
+  getMediaList,
   type ProductFormDto,
 } from "@/lib/admin-api";
-import type { Category, Product, ProductVariant } from "@/lib/types";
+import type { Category, Media, Product, ProductVariant } from "@/lib/types";
 
 type FormState = {
   name: string;
@@ -113,24 +114,34 @@ export default function AdminProductsPage() {
   const [deleting, setDeleting] = useState<Product | null>(null);
   const [useVariantStock, setUseVariantStock] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  // 選擇檔案後上傳到 R2，成功則把公開 URL 追加到圖片清單
-  async function handleImageUpload(files: FileList | null) {
-    if (!token || !files || files.length === 0) return;
+  // 把網址（多個）追加到圖片清單（去重）
+  function appendImageUrls(urls: string[]) {
+    setForm((prev) => {
+      const existing = prev.images
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const merged = Array.from(new Set([...existing, ...urls]));
+      return { ...prev, images: merged.join("\n") };
+    });
+  }
+
+  // 拖拉/選擇檔案 → 上傳到 R2（同時建立 Media 記錄）→ 追加公開 URL
+  async function handleImageUpload(files: FileList | File[] | null) {
+    if (!token || !files) return;
+    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (list.length === 0) return;
     setUploading(true);
     try {
       const urls: string[] = [];
-      for (const file of Array.from(files)) {
-        const { url } = await uploadProductImage(token, file);
-        urls.push(url);
+      for (const file of list) {
+        const uploaded = await uploadMedia(token, file);
+        urls.push(uploaded.url);
       }
-      setForm((prev) => {
-        const existing = prev.images.trim();
-        return {
-          ...prev,
-          images: [existing, ...urls].filter(Boolean).join("\n"),
-        };
-      });
+      appendImageUrls(urls);
       showToast(`已上傳 ${urls.length} 張圖片`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "圖片上傳失敗", "error");
@@ -662,39 +673,63 @@ export default function AdminProductsPage() {
                 </select>
               </label>
 
-              <label className="block">
+              <div className="block">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-neutral-600">
-                    商品圖片（可上傳，或每行一個 URL）
+                    商品圖片
                   </span>
-                  <label
-                    className={`cursor-pointer text-xs font-bold transition-colors ${
-                      uploading
-                        ? "text-neutral-400"
-                        : "text-pumpkin-600 hover:text-pumpkin-700"
-                    }`}
-                  >
-                    {uploading ? "上傳中…" : "＋ 上傳圖片"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      disabled={uploading}
-                      onChange={(e) => {
-                        handleImageUpload(e.target.files);
-                        e.target.value = "";
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex items-center gap-3 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen(true)}
+                      className="text-neutral-500 transition-colors hover:text-neutral-800"
+                    >
+                      從媒體庫挑
+                    </button>
+                    <label
+                      className={`cursor-pointer transition-colors ${
+                        uploading
+                          ? "text-neutral-400"
+                          : "text-pumpkin-600 hover:text-pumpkin-700"
+                      }`}
+                    >
+                      {uploading ? "上傳中…" : "＋ 上傳圖片"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        disabled={uploading}
+                        onChange={(e) => {
+                          handleImageUpload(e.target.files);
+                          e.target.value = "";
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
-                <textarea
-                  rows={3}
-                  value={form.images}
-                  onChange={(e) => setForm({ ...form, images: e.target.value })}
-                  placeholder="上傳後會自動填入公開網址，也可手動貼上 URL"
-                  className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm font-mono focus:border-pumpkin-400 focus:outline-none"
-                />
+
+                {/* 拖拉上傳區 */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOver(true);
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    handleImageUpload(e.dataTransfer.files);
+                  }}
+                  className={`mt-1 rounded-xl border-2 border-dashed px-4 py-4 text-center text-xs transition-colors ${
+                    dragOver
+                      ? "border-pumpkin-500 bg-pumpkin-50 text-pumpkin-700"
+                      : "border-neutral-200 text-neutral-400"
+                  }`}
+                >
+                  將圖片拖曳到這裡自動上傳到媒體庫，或用上方按鈕
+                </div>
+
                 {form.images.trim() && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {form.images
@@ -704,20 +739,48 @@ export default function AdminProductsPage() {
                       .map((url, i) => (
                         <div
                           key={`${url}-${i}`}
-                          className="relative h-16 w-16 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100"
+                          className="group relative h-16 w-16 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100"
                         >
-                          {/* 預覽用一般 img，避免未列入 next.config 的網域報錯 */}
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={url}
                             alt={`預覽 ${i + 1}`}
                             className="h-full w-full object-cover"
                           />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                images: prev.images
+                                  .split("\n")
+                                  .map((s) => s.trim())
+                                  .filter((s) => s && s !== url)
+                                  .join("\n"),
+                              }))
+                            }
+                            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-label="移除此圖"
+                          >
+                            ×
+                          </button>
                         </div>
                       ))}
                   </div>
                 )}
-              </label>
+
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs text-neutral-400">
+                    手動編輯圖片網址（每行一個）
+                  </summary>
+                  <textarea
+                    rows={3}
+                    value={form.images}
+                    onChange={(e) => setForm({ ...form, images: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm font-mono focus:border-pumpkin-400 focus:outline-none"
+                  />
+                </details>
+              </div>
 
               <div className="border-t border-neutral-100 pt-4 mt-2 space-y-4">
                 <div className="flex items-center justify-between">
@@ -847,6 +910,125 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
+
+      {pickerOpen && token && (
+        <MediaPickerModal
+          token={token}
+          selected={form.images
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean)}
+          onClose={() => setPickerOpen(false)}
+          onConfirm={(urls) => {
+            appendImageUrls(urls);
+            setPickerOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MediaPickerModal({
+  token,
+  selected,
+  onClose,
+  onConfirm,
+}: {
+  token: string;
+  selected: string[];
+  onClose: () => void;
+  onConfirm: (urls: string[]) => void;
+}) {
+  const [items, setItems] = useState<Media[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getMediaList(token, { limit: 50 })
+      .then((d) => setItems(d.items))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  function toggle(url: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-bold text-neutral-900">從媒體庫挑選圖片</h2>
+        <div className="mt-4 flex-1 overflow-y-auto">
+          {loading ? (
+            <p className="py-10 text-center text-sm text-neutral-400">載入中…</p>
+          ) : items.length === 0 ? (
+            <p className="py-10 text-center text-sm text-neutral-400">
+              媒體庫還沒有圖片，先到「媒體庫」或用上傳按鈕新增。
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {items.map((m) => {
+                const already = selected.includes(m.url);
+                const isPicked = picked.has(m.url);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => !already && toggle(m.url)}
+                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition-all ${
+                      already
+                        ? "border-neutral-200 opacity-40"
+                        : isPicked
+                          ? "border-pumpkin-500 ring-2 ring-pumpkin-200"
+                          : "border-neutral-200 hover:border-neutral-400"
+                    }`}
+                    title={already ? "已在此商品" : m.filename}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={m.url}
+                      alt={m.alt ?? m.filename}
+                      className="h-full w-full object-cover"
+                    />
+                    {(isPicked || already) && (
+                      <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-pumpkin-600 text-xs text-white">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100"
+          >
+            取消
+          </button>
+          <button
+            onClick={() => onConfirm(Array.from(picked))}
+            disabled={picked.size === 0}
+            className="rounded-full bg-pumpkin-600 px-5 py-2 text-sm font-bold text-white hover:bg-pumpkin-700 disabled:bg-neutral-300"
+          >
+            加入 {picked.size > 0 ? `(${picked.size})` : ""}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

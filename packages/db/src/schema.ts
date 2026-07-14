@@ -219,6 +219,29 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   }),
 }));
 
+// ---------- 媒體庫（Cloudflare R2 物件）----------
+export const media = pgTable("media", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  /** R2 物件 key，例如 media/uuid.jpg（唯一） */
+  key: varchar("key", { length: 512 }).notNull().unique(),
+  /** 公開存取 URL */
+  url: text("url").notNull(),
+  /** 上傳時的原始檔名 */
+  filename: varchar("filename", { length: 512 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  /** 檔案大小（bytes） */
+  size: integer("size").notNull().default(0),
+  /** key 的前綴分類，例如 media / products */
+  prefix: varchar("prefix", { length: 64 }).notNull().default("media"),
+  /** 替代文字（無障礙 / SEO） */
+  alt: text("alt"),
+  /** 圖片說明 */
+  caption: text("caption"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ---------- 驗證碼 ----------
 export const verificationCodes = pgTable("verification_codes", {
   id: varchar("id", { length: 36 })
@@ -244,3 +267,5 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type VerificationCode = typeof verificationCodes.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
+export type Media = typeof media.$inferSelect;
+export type NewMedia = typeof media.$inferInsert;

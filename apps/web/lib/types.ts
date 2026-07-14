@@ -175,6 +175,30 @@ export type AdminUserListResponse = {
   };
 };
 
+/** 媒體庫項目（Cloudflare R2 物件 + metadata） */
+export type Media = {
+  id: string;
+  key: string;
+  url: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  prefix: string;
+  alt: string | null;
+  caption: string | null;
+  createdAt: string;
+};
+
+export type MediaListResponse = {
+  items: Media[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 /** 後端目前連線的資料庫環境（唯讀，不含帳密） */
 export type AdminEnvironmentResponse = {
   environment: "development" | "production";
