@@ -48,13 +48,17 @@ export function GoogleSignInButton({
         }
       },
     });
+    const containerWidth = ref.current.offsetWidth || 360;
+    const targetWidth = Math.min(containerWidth, 400);
+    const adjustedWidth = Math.floor(targetWidth / 1.1);
+
     window.google.accounts.id.renderButton(ref.current, {
       theme: "outline",
       size: "large",
       shape: "rectangular",
       text: "continue_with",
       locale: "zh_TW",
-      width: Math.min(ref.current.offsetWidth || 360, 400),
+      width: adjustedWidth,
       height: 40,
     });
   }, [googleLogin, router, redirectUrl, showToast]);
