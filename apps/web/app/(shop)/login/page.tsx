@@ -73,7 +73,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full h-10 rounded border border-neutral-200 px-4 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
+                className="relative block w-full h-11 rounded-md border border-neutral-200 px-4 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
                 placeholder="電子郵件信箱"
               />
             </div>
@@ -90,7 +90,7 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="relative block w-full h-10 rounded border border-neutral-200 px-4 pr-10 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
+                  className="relative block w-full h-11 rounded-md border border-neutral-200 px-4 pr-10 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
                   placeholder="密碼"
                 />
                 <button
@@ -109,7 +109,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full h-10 items-center justify-center rounded bg-pumpkin-600 px-4 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none"
+              className="group relative flex w-full py-2.5 items-center justify-center rounded-md bg-pumpkin-600 px-4 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none"
             >
               {loading ? (
                 <svg
