@@ -157,6 +157,125 @@ export class AuthService {
     return { success: true, message: "驗證碼已發送" };
   }
 
+  /** 忘記密碼：寄送重設驗證碼（不透露 email 是否存在，一律回成功） */
+  async sendPasswordResetCode(email: string) {
+    if (!email?.trim()) {
+      throw new BadRequestException("請提供 Email");
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const db = getDb();
+
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, cleanEmail),
+    });
+
+    // 找不到會員也回成功（避免 email 列舉），但不寄信
+    if (user) {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await db.insert(verificationCodes).values({
+        email: cleanEmail,
+        code,
+        expiresAt,
+      });
+      await this.deliverResetEmail(cleanEmail, code);
+    }
+
+    return { success: true, message: "若該 Email 已註冊，重設驗證碼已寄出" };
+  }
+
+  private async deliverResetEmail(email: string, code: string) {
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || `"南瓜多 Shop" <no-reply@nanguado.shop>`;
+
+    if (host && port && user && pass) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host,
+          port,
+          secure: port === 465,
+          auth: { user, pass },
+        });
+        await transporter.sendMail({
+          from,
+          to: email,
+          subject: "【南瓜多 Shop】密碼重設驗證碼",
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
+              <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 密碼重設</h2>
+              <p>您好，以下是您的密碼重設驗證碼：</p>
+              <div style="background-color: #fff7ed; border: 1px dashed #fdba74; padding: 15px; text-align: center; margin: 20px 0;">
+                <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #c2410c;">${code}</span>
+              </div>
+              <p style="color: #666; font-size: 14px;">驗證碼 10 分鐘內有效。若您並未申請重設密碼，請忽略此信。</p>
+            </div>
+          `,
+        });
+        console.log(`[SMTP] 密碼重設驗證信已寄至 ${email}`);
+      } catch (err) {
+        console.error(`[SMTP] 密碼重設信寄送失敗 ${email}:`, err);
+        throw new BadRequestException("發送驗證信失敗，請稍後再試");
+      }
+    } else {
+      console.log(`\n===== [密碼重設 Mock] =====`);
+      console.log(`Email：${email}`);
+      console.log(`重設驗證碼：${code}`);
+      console.log(`==========================\n`);
+    }
+  }
+
+  /** 以驗證碼重設密碼 */
+  async resetPassword(dto: {
+    email?: string;
+    code?: string;
+    newPassword?: string;
+  }) {
+    const { email, code, newPassword } = dto;
+    if (!email || !code || !newPassword) {
+      throw new BadRequestException("請提供 Email、驗證碼與新密碼");
+    }
+    if (newPassword.length < 6) {
+      throw new BadRequestException("密碼長度至少 6 碼");
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const db = getDb();
+
+    const validOtp = await db.query.verificationCodes.findFirst({
+      where: and(
+        eq(verificationCodes.email, cleanEmail),
+        eq(verificationCodes.code, code.trim()),
+        gte(verificationCodes.expiresAt, new Date()),
+      ),
+      orderBy: desc(verificationCodes.createdAt),
+    });
+    if (!validOtp) {
+      throw new BadRequestException("驗證碼錯誤或已過期");
+    }
+
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, cleanEmail),
+    });
+    if (!user) {
+      throw new BadRequestException("查無此帳號");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db
+      .update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, user.id));
+
+    // 清除該 email 的所有驗證碼
+    await db
+      .delete(verificationCodes)
+      .where(eq(verificationCodes.email, cleanEmail));
+
+    return { success: true, message: "密碼已重設，請以新密碼登入" };
+  }
+
   async login(dto: any) {
     const { email, password, sessionId } = dto;
     if (!email || !password) {

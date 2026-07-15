@@ -1,6 +1,6 @@
 import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
 import { getDb, orders, products } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
 
 @Controller("ecpay")
@@ -35,67 +35,117 @@ export class EcpayController {
       return "0|Missing_MerchantTradeNo";
     }
 
-    const db = getDb();
-
-    if (payload.RtnCode === "1") {
-      // 讀取該筆交易的訂單明細，並於狀態變更前扣減庫存
-      const orderRecord = await db.query.orders.findFirst({
-        where: eq(orders.merchantTradeNo, merchantTradeNo),
-        with: { items: true },
-      });
-
-      if (orderRecord && orderRecord.status !== "paid") {
-        for (const item of orderRecord.items) {
-          const product = await db.query.products.findFirst({
-            where: eq(products.id, item.productId),
-          });
-          if (product) {
-            let nextStock = Math.max(0, product.stock - item.quantity);
-            let nextVariantStock = { ...product.variantStock };
-
-            const hasVariantStock = product.variantStock && Object.keys(product.variantStock).length > 0;
-            if (hasVariantStock && product.variants && product.variants.length > 0 && item.selectedVariant) {
-              const key = product.variants
-                .map((v: any) => (item.selectedVariant as Record<string, string>)[v.name] || "")
-                .join(" / ");
-              const currentVal = nextVariantStock[key] ?? 0;
-              nextVariantStock[key] = Math.max(0, currentVal - item.quantity);
-              
-              // 總庫存更新為各規格庫存的加總
-              nextStock = Object.values(nextVariantStock).reduce((a, b) => a + b, 0);
-            }
-
-            await db
-              .update(products)
-              .set({
-                stock: nextStock,
-                variantStock: nextVariantStock,
-                updatedAt: new Date(),
-              })
-              .where(eq(products.id, product.id));
-            
-            this.logger.log(`📦 已更新商品 ${product.name} 庫存：剩餘 ${nextStock} 件`);
-          }
-        }
-      }
-
-      await db
-        .update(orders)
-        .set({
-          isPaid: true,
-          status: "paid",
-          paymentType: payload.PaymentType ?? "Credit",
-          paidAt: payload.PaymentDate ? new Date(payload.PaymentDate) : new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(orders.merchantTradeNo, merchantTradeNo));
-      this.logger.log(`✅ 訂單 ${merchantTradeNo} 付款成功，已更新資料庫`);
-    } else {
+    if (payload.RtnCode !== "1") {
       this.logger.warn(
         `⚠️ 訂單 ${merchantTradeNo} 付款未完成：${payload.RtnMsg ?? "unknown"}`,
       );
+      return "1|OK";
     }
 
+    const db = getDb();
+    const orderRecord = await db.query.orders.findFirst({
+      where: eq(orders.merchantTradeNo, merchantTradeNo),
+      with: { items: true },
+    });
+    if (!orderRecord) {
+      this.logger.warn(`找不到訂單 ${merchantTradeNo}`);
+      return "1|OK";
+    }
+
+    // 冪等性：原子地把訂單從「非 paid」轉為 paid；只有真正轉成功的那一通 webhook
+    // 才會進行扣庫存，避免綠界重送 webhook 造成重複扣減。
+    const transitioned = await db
+      .update(orders)
+      .set({
+        isPaid: true,
+        status: "paid",
+        paymentType: payload.PaymentType ?? "Credit",
+        paidAt: payload.PaymentDate
+          ? new Date(payload.PaymentDate)
+          : new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(orders.merchantTradeNo, merchantTradeNo),
+          ne(orders.status, "paid"),
+        ),
+      )
+      .returning({ id: orders.id });
+
+    if (transitioned.length === 0) {
+      this.logger.log(`ℹ️ 訂單 ${merchantTradeNo} 已為已付款，略過重複處理`);
+      return "1|OK";
+    }
+
+    // 逐項原子扣減庫存（用 SQL 運算式，避免先讀後寫的 lost update）
+    for (const item of orderRecord.items) {
+      await this.decrementStock(
+        item.productId,
+        item.quantity,
+        item.selectedVariant as Record<string, string> | null,
+      );
+    }
+    this.logger.log(`✅ 訂單 ${merchantTradeNo} 付款成功，已原子扣減庫存`);
     return "1|OK";
+  }
+
+  /** 原子扣減庫存：規格庫存用 jsonb_set 扣該規格並重算總數，否則直接扣總庫存 */
+  private async decrementStock(
+    productId: string,
+    quantity: number,
+    selectedVariant: Record<string, string> | null,
+  ) {
+    const db = getDb();
+    const product = await db.query.products.findFirst({
+      where: eq(products.id, productId),
+    });
+    if (!product) return;
+
+    const hasVariantStock =
+      product.variantStock && Object.keys(product.variantStock).length > 0;
+
+    if (
+      hasVariantStock &&
+      product.variants &&
+      product.variants.length > 0 &&
+      selectedVariant
+    ) {
+      const key = product.variants
+        .map((v) => selectedVariant[v.name] || "")
+        .join(" / ");
+
+      // 1) 原子扣減該規格的 jsonb 值（不低於 0）
+      await db
+        .update(products)
+        .set({
+          variantStock: sql`jsonb_set(
+            ${products.variantStock},
+            ARRAY[${key}],
+            to_jsonb(GREATEST((${products.variantStock} ->> ${key})::int - ${quantity}, 0))
+          )`,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId));
+
+      // 2) 總庫存重算為各規格加總（從最新的 variantStock 計算）
+      await db
+        .update(products)
+        .set({
+          stock: sql`(SELECT COALESCE(SUM(value::int), 0) FROM jsonb_each_text(${products.variantStock}))`,
+        })
+        .where(eq(products.id, productId));
+    } else {
+      // 無規格庫存 → 直接原子扣總庫存（不低於 0）
+      await db
+        .update(products)
+        .set({
+          stock: sql`GREATEST(${products.stock} - ${quantity}, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId));
+    }
+
+    this.logger.log(`📦 已扣減商品 ${product.name} 庫存（-${quantity}）`);
   }
 }

@@ -29,6 +29,18 @@ export class AuthController {
     return this.authService.googleLogin(body);
   }
 
+  @Post("forgot-password")
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authService.sendPasswordResetCode(body.email);
+  }
+
+  @Post("reset-password")
+  resetPassword(
+    @Body() body: { email?: string; code?: string; newPassword?: string },
+  ) {
+    return this.authService.resetPassword(body);
+  }
+
   @Get("me")
   @UseGuards(AuthGuard)
   getMe(@CurrentUser() user: { userId: string }) {

@@ -105,6 +105,15 @@ function LoginForm() {
             </div>
           </div>
 
+          <div className="text-right">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-neutral-500 hover:text-pumpkin-600 hover:underline"
+            >
+              忘記密碼？
+            </Link>
+          </div>
+
           <div>
             <button
               type="submit"
