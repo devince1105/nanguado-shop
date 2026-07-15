@@ -55,7 +55,7 @@ export function GoogleSignInButton({
       text: "continue_with",
       locale: "zh_TW",
       width: Math.min(ref.current.offsetWidth || 360, 400),
-      height: 40,
+      height: 44,
     });
   }, [googleLogin, router, redirectUrl, showToast]);
 
@@ -83,7 +83,7 @@ export function GoogleSignInButton({
 
   return (
     <div className="space-y-4">
-      <div ref={ref} className="flex justify-center" />
+      <div ref={ref} className="flex justify-center h-11 items-center" />
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-neutral-200" />
         <span className="text-xs text-neutral-400">或</span>

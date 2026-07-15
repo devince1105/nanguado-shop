@@ -250,7 +250,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading || !otpSent || code.length !== 6}
-              className="group relative flex w-full py-2.5 items-center justify-center rounded-md bg-pumpkin-600 px-4 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="group relative flex w-full h-11 items-center justify-center rounded-md bg-pumpkin-600 px-4 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
                 <svg
