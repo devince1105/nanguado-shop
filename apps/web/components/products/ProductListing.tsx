@@ -82,7 +82,7 @@ export async function ProductListing({
               <p className="mt-3">這個分類目前沒有商品</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 xl:grid-cols-4">
               {data.items.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

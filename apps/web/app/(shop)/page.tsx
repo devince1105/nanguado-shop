@@ -9,7 +9,7 @@ import { HeroCarousel } from "@/components/home/HeroCarousel";
 async function FeaturedProducts() {
   const data = await getProducts({ limit: 8 });
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
       {data.items.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}

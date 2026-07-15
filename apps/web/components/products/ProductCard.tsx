@@ -58,7 +58,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      <div className="px-1 py-3">
+      <div className="px-2 pb-5 pt-3">
         <h3 className="line-clamp-2 text-sm font-bold leading-5 text-neutral-900 group-hover:text-pumpkin-700">
           {product.name}
         </h3>
