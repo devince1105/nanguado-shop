@@ -55,6 +55,7 @@ export function GoogleSignInButton({
       text: "continue_with",
       locale: "zh_TW",
       width: Math.min(ref.current.offsetWidth || 360, 400),
+      height: 40,
     });
   }, [googleLogin, router, redirectUrl, showToast]);
 

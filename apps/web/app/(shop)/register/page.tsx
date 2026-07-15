@@ -116,11 +116,11 @@ function RegisterForm() {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm text-neutral-950 placeholder-neutral-400 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 disabled:bg-neutral-100 disabled:text-neutral-500";
+    "w-full h-10 rounded border border-neutral-200 px-4 text-sm text-neutral-950 placeholder-neutral-400 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 disabled:bg-neutral-100 disabled:text-neutral-500";
 
   return (
     <div className="flex min-h-[90vh] items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-neutral-50/50">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-neutral-100 bg-white p-8 shadow-xl shadow-neutral-100/50">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-neutral-100 bg-white p-8 shadow-xl shadow-neutral-100/50">
         <div className="text-center">
           <span className="text-4xl">🎃</span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-neutral-900">
@@ -164,7 +164,7 @@ function RegisterForm() {
                 type="button"
                 disabled={sendingOtp || countdown > 0}
                 onClick={handleSendOtp}
-                className="shrink-0 rounded-lg bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                className="shrink-0 h-10 rounded bg-neutral-950 px-4 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 disabled:pointer-events-none transition-colors flex items-center justify-center"
               >
                 {sendingOtp ? "傳送中…" : countdown > 0 ? `${countdown}s` : otpSent ? "重新傳送" : "傳送驗證碼"}
               </button>
@@ -250,7 +250,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading || !otpSent || code.length !== 6}
-              className="group relative flex w-full justify-center rounded-xl bg-pumpkin-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="group relative flex w-full h-10 items-center justify-center rounded bg-pumpkin-600 px-4 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
                 <svg

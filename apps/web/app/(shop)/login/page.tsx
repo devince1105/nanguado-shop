@@ -42,7 +42,7 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-neutral-50/50">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-neutral-100 bg-white p-8 shadow-xl shadow-neutral-100/50">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-neutral-100 bg-white p-8 shadow-xl shadow-neutral-100/50">
         <div className="text-center">
           <span className="text-4xl">🎃</span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-neutral-900">
@@ -53,12 +53,12 @@ function LoginForm() {
           </p>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-6">
           <GoogleSignInButton redirectUrl={redirectUrl} />
         </div>
 
-        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4 rounded-md">
+        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-4">
             <div>
               <label htmlFor="email-address" className="sr-only">
                 電子郵件
@@ -71,7 +71,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full rounded-lg border border-neutral-200 px-4 py-3 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
+                className="relative block w-full h-10 rounded border border-neutral-200 px-4 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
                 placeholder="電子郵件信箱"
               />
             </div>
@@ -87,7 +87,7 @@ function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full rounded-lg border border-neutral-200 px-4 py-3 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
+                className="relative block w-full h-10 rounded border border-neutral-200 px-4 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
                 placeholder="密碼"
               />
             </div>
@@ -97,7 +97,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-xl bg-pumpkin-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none"
+              className="group relative flex w-full h-10 items-center justify-center rounded bg-pumpkin-600 px-4 text-sm font-semibold text-white shadow-lg shadow-pumpkin-600/10 hover:bg-pumpkin-700 focus:outline-none focus:ring-2 focus:ring-pumpkin-500/50 focus:ring-offset-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none"
             >
               {loading ? (
                 <svg
