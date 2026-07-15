@@ -11,6 +11,7 @@ import { MediaModule } from "./media/media.module";
 import { PagesModule } from "./pages/pages.module";
 import { SettingsModule } from "./settings/settings.module";
 import { BannersModule } from "./banners/banners.module";
+import { MailModule } from "./mail/mail.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { BannersModule } from "./banners/banners.module";
     PagesModule,
     SettingsModule,
     BannersModule,
+    MailModule,
   ],
 })
 export class AppModule {}

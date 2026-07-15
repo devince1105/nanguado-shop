@@ -1,13 +1,17 @@
 import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
-import { getDb, orders, products } from "@repo/db";
+import { getDb, orders, products, type Order, type OrderItem } from "@repo/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
+import { MailService } from "../mail/mail.service";
 
 @Controller("ecpay")
 export class EcpayController {
   private readonly logger = new Logger(EcpayController.name);
 
-  constructor(private readonly paymentService: EcpayPaymentService) {}
+  constructor(
+    private readonly paymentService: EcpayPaymentService,
+    private readonly mailService: MailService,
+  ) {}
 
   /**
    * 綠界付款結果 Webhook（application/x-www-form-urlencoded）。
@@ -87,7 +91,54 @@ export class EcpayController {
       );
     }
     this.logger.log(`✅ 訂單 ${merchantTradeNo} 付款成功，已原子扣減庫存`);
+
+    // 寄送付款成功通知信（失敗不影響回覆綠界）
+    this.sendPaidEmail(orderRecord).catch((err) =>
+      this.logger.error("付款通知信寄送失敗", err),
+    );
+
     return "1|OK";
+  }
+
+  /** 付款成功通知信 */
+  private async sendPaidEmail(order: Order & { items: OrderItem[] }) {
+    if (!order.recipientEmail) return;
+    const rows = order.items
+      .map(
+        (it) =>
+          `<tr>
+            <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;">${it.productName}${
+              it.selectedVariant
+                ? `<span style="color:#999;font-size:12px;"> (${Object.values(it.selectedVariant).join(" / ")})</span>`
+                : ""
+            } × ${it.quantity}</td>
+            <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;">NT$${(it.unitPrice * it.quantity).toLocaleString("zh-TW")}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const html = `
+      <div style="font-family:sans-serif;padding:20px;max-width:600px;border:1px solid #eee;border-radius:8px;">
+        <h2 style="color:#ea580c;border-bottom:2px solid #ea580c;padding-bottom:10px;">🎃 付款成功，訂單確認中</h2>
+        <p>親愛的 ${order.recipientName}，感謝您的訂購！我們已收到您的付款，將盡快為您出貨。</p>
+        <p style="color:#666;font-size:14px;">訂單編號：<b>${order.merchantTradeNo}</b></p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+          ${rows}
+          <tr>
+            <td style="padding:12px 0;font-weight:bold;">訂單總金額</td>
+            <td style="padding:12px 0;text-align:right;font-weight:bold;color:#c2410c;">NT$${order.totalAmount.toLocaleString("zh-TW")}</td>
+          </tr>
+        </table>
+        <p style="color:#666;font-size:14px;">寄送地址：${order.recipientAddress}</p>
+        <hr style="border:0;border-top:1px solid #eee;margin:20px 0;" />
+        <p style="color:#999;font-size:12px;text-align:center;">南瓜多 Shop 團隊 敬上</p>
+      </div>`;
+
+    await this.mailService.sendMail({
+      to: order.recipientEmail,
+      subject: `【付款成功】訂單 ${order.merchantTradeNo} 確認通知`,
+      html,
+    });
   }
 
   /** 原子扣減庫存：規格庫存用 jsonb_set 扣該規格並重算總數，否則直接扣總庫存 */
