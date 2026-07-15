@@ -1,12 +1,15 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { getDb, users, verificationCodes } from "@repo/db";
 import { eq, and, gte, desc } from "drizzle-orm";
 import * as bcrypt from "bcryptjs";
 import * as nodemailer from "nodemailer";
+import { randomUUID } from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import { CartService } from "../cart/cart.service";
 import { signAuthToken } from "./jwt.util";
 
@@ -185,6 +188,78 @@ export class AuthService {
 
     const token = this.generateToken(user.id, user.email, user.role);
 
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        address: user.address,
+        role: user.role,
+      },
+    };
+  }
+
+  /** Google 第三方登入：驗證 Google ID Token，找不到會員則建立 */
+  async googleLogin(dto: { credential?: string; sessionId?: string }) {
+    const { credential, sessionId } = dto;
+    if (!credential) {
+      throw new BadRequestException("缺少 Google 憑證");
+    }
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new InternalServerErrorException("尚未設定 GOOGLE_CLIENT_ID");
+    }
+
+    const client = new OAuth2Client(clientId);
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException("Google 驗證失敗");
+    }
+
+    const email = payload?.email?.toLowerCase().trim();
+    if (!email || !payload?.email_verified) {
+      throw new UnauthorizedException("無法取得已驗證的 Google 電子郵件");
+    }
+    const name = payload.name ?? email.split("@")[0];
+
+    const db = getDb();
+    let user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    // 找不到會員 → 以 Google 資料建立（無密碼，用隨機 hash 占位、email 視為已驗證）
+    if (!user) {
+      const placeholderHash = await bcrypt.hash(randomUUID(), 10);
+      const [created] = await db
+        .insert(users)
+        .values({
+          email,
+          name,
+          passwordHash: placeholderHash,
+          role: "customer",
+          isEmailVerified: true,
+        })
+        .returning();
+      user = created;
+    }
+
+    if (sessionId) {
+      try {
+        await this.cartService.mergeCart(sessionId, user.id);
+      } catch (err) {
+        console.error("合併購物車失敗:", err);
+      }
+    }
+
+    const token = this.generateToken(user.id, user.email, user.role);
     return {
       token,
       user: {

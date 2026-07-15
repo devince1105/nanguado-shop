@@ -9,6 +9,7 @@ type AuthState = {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
+  googleLogin: (credential: string) => Promise<User>;
   register: (data: {
     email: string;
     password?: string;
@@ -55,6 +56,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await useCartStore.getState().fetchCart();
       } catch (cartErr) {
         console.error("登入後同步購物車失敗:", cartErr);
+      }
+
+      return user;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  googleLogin: async (credential) => {
+    set({ loading: true });
+    try {
+      const sessionId = getSessionId();
+      const res = await fetch(`${API_URL}/api/v1/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential, sessionId }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.message ?? "Google 登入失敗");
+      }
+
+      const { token, user } = body as { token: string; user: User };
+      window.localStorage.setItem("nanguado-token", token);
+      window.localStorage.setItem("nanguado-user", JSON.stringify(user));
+      set({ token, user });
+
+      try {
+        await useCartStore.getState().fetchCart();
+      } catch (cartErr) {
+        console.error("Google 登入後同步購物車失敗:", cartErr);
       }
 
       return user;

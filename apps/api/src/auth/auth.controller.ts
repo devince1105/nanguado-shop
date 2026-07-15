@@ -24,6 +24,11 @@ export class AuthController {
     return this.authService.login(body);
   }
 
+  @Post("google")
+  googleLogin(@Body() body: { credential?: string; sessionId?: string }) {
+    return this.authService.googleLogin(body);
+  }
+
   @Get("me")
   @UseGuards(AuthGuard)
   getMe(@CurrentUser() user: { userId: string }) {

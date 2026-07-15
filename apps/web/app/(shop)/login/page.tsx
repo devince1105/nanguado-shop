@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState, useEffect, Suspense } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useToastStore } from "@/lib/store/toast";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 function LoginForm() {
   const router = useRouter();
@@ -52,7 +53,11 @@ function LoginForm() {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="mt-8">
+          <GoogleSignInButton redirectUrl={redirectUrl} />
+        </div>
+
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4 rounded-md">
             <div>
               <label htmlFor="email-address" className="sr-only">
