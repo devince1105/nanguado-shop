@@ -6,6 +6,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useToastStore } from "@/lib/store/toast";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -17,6 +18,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const redirectUrl = searchParams.get("redirect") || "/";
 
@@ -79,17 +81,27 @@ function LoginForm() {
               <label htmlFor="password" className="sr-only">
                 密碼
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full h-10 rounded border border-neutral-200 px-4 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
-                placeholder="密碼"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="relative block w-full h-10 rounded border border-neutral-200 px-4 pr-10 text-neutral-950 placeholder-neutral-400 focus:z-10 focus:border-pumpkin-500 focus:outline-none focus:ring-pumpkin-500/20 sm:text-sm"
+                  placeholder="密碼"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors z-20"
+                  aria-label={showPassword ? "隱藏密碼" : "顯示密碼"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
 
