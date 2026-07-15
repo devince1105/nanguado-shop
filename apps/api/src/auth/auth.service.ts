@@ -7,15 +7,18 @@ import {
 import { getDb, users, verificationCodes } from "@repo/db";
 import { eq, and, gte, desc } from "drizzle-orm";
 import * as bcrypt from "bcryptjs";
-import * as nodemailer from "nodemailer";
 import { randomUUID } from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { CartService } from "../cart/cart.service";
+import { MailService } from "../mail/mail.service";
 import { signAuthToken } from "./jwt.util";
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly mailService: MailService,
+  ) {}
 
   async register(dto: any) {
     const { email, password, name, phone, address, code } = dto;
@@ -107,52 +110,25 @@ export class AuthService {
       expiresAt,
     });
 
-    // 寄送 Email (如果 SMTP 環境變數未設定，則 Mock console 輸出)
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || `"南瓜多 Shop" <no-reply@nanguado.shop>`;
-
-    if (host && port && user && pass) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host,
-          port,
-          secure: port === 465,
-          auth: { user, pass },
-        });
-
-        await transporter.sendMail({
-          from,
-          to: cleanEmail,
-          subject: "【南瓜多 Shop】會員註冊驗證信",
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
-              <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 南瓜多 Shop 會員註冊</h2>
-              <p>您好，感謝您註冊南瓜多 Shop！以下是您的註冊驗證碼：</p>
-              <div style="background-color: #fff7ed; border: 1px dashed #fdba74; padding: 15px; text-align: center; margin: 20px 0;">
-                <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #c2410c;">${code}</span>
-              </div>
-              <p style="color: #666; font-size: 14px;">此驗證碼有效期限為 10 分鐘，請儘速於註冊頁面中完成驗證。如果您沒有進行此項操作，請忽略此郵件。</p>
-              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="color: #999; font-size: 12px; text-align: center;">南瓜多 Shop 團隊 敬上</p>
+    // 背景寄送驗證信（不 await，避免前端卡住；走 MailService 的 Resend HTTP API）
+    this.mailService
+      .sendMail({
+        to: cleanEmail,
+        subject: "【南瓜多 Shop】會員註冊驗證信",
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
+            <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 南瓜多 Shop 會員註冊</h2>
+            <p>您好，感謝您註冊南瓜多 Shop！以下是您的註冊驗證碼：</p>
+            <div style="background-color: #fff7ed; border: 1px dashed #fdba74; padding: 15px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #c2410c;">${code}</span>
             </div>
-          `,
-        });
-        console.log(`[SMTP] 成功發送驗證信至 ${cleanEmail}`);
-      } catch (err) {
-        console.error(`[SMTP] 發送驗證信至 ${cleanEmail} 失敗:`, err);
-        throw new BadRequestException("發送驗證信失敗，請稍後再試");
-      }
-    } else {
-      // 開發/模擬模式
-      console.log(`\n========================================`);
-      console.log(`[SMTP Mock] 寄送驗證碼至 ${cleanEmail}`);
-      console.log(`驗證碼 (OTP Code)：${code}`);
-      console.log(`有效期限至：${expiresAt.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })}`);
-      console.log(`========================================\n`);
-    }
+            <p style="color: #666; font-size: 14px;">此驗證碼有效期限為 10 分鐘，請儘速於註冊頁面中完成驗證。如果您沒有進行此項操作，請忽略此郵件。</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #999; font-size: 12px; text-align: center;">南瓜多 Shop 團隊 敬上</p>
+          </div>
+        `,
+      })
+      .catch((err) => console.error("[註冊驗證信] 寄送失敗:", err));
 
     return { success: true, message: "驗證碼已發送" };
   }
@@ -178,53 +154,30 @@ export class AuthService {
         code,
         expiresAt,
       });
-      await this.deliverResetEmail(cleanEmail, code);
+      // 背景寄信（不 await），讓 API 立即回應、前端不卡在「寄送中」
+      this.deliverResetEmail(cleanEmail, code).catch((err) =>
+        console.error("[密碼重設] 寄信失敗:", err),
+      );
     }
 
     return { success: true, message: "若該 Email 已註冊，重設驗證碼已寄出" };
   }
 
   private async deliverResetEmail(email: string, code: string) {
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || `"南瓜多 Shop" <no-reply@nanguado.shop>`;
-
-    if (host && port && user && pass) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host,
-          port,
-          secure: port === 465,
-          auth: { user, pass },
-        });
-        await transporter.sendMail({
-          from,
-          to: email,
-          subject: "【南瓜多 Shop】密碼重設驗證碼",
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
-              <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 密碼重設</h2>
-              <p>您好，以下是您的密碼重設驗證碼：</p>
-              <div style="background-color: #fff7ed; border: 1px dashed #fdba74; padding: 15px; text-align: center; margin: 20px 0;">
-                <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #c2410c;">${code}</span>
-              </div>
-              <p style="color: #666; font-size: 14px;">驗證碼 10 分鐘內有效。若您並未申請重設密碼，請忽略此信。</p>
-            </div>
-          `,
-        });
-        console.log(`[SMTP] 密碼重設驗證信已寄至 ${email}`);
-      } catch (err) {
-        console.error(`[SMTP] 密碼重設信寄送失敗 ${email}:`, err);
-        throw new BadRequestException("發送驗證信失敗，請稍後再試");
-      }
-    } else {
-      console.log(`\n===== [密碼重設 Mock] =====`);
-      console.log(`Email：${email}`);
-      console.log(`重設驗證碼：${code}`);
-      console.log(`==========================\n`);
-    }
+    await this.mailService.sendMail({
+      to: email,
+      subject: "【南瓜多 Shop】密碼重設驗證碼",
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 密碼重設</h2>
+          <p>您好，以下是您的密碼重設驗證碼：</p>
+          <div style="background-color: #fff7ed; border: 1px dashed #fdba74; padding: 15px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #c2410c;">${code}</span>
+          </div>
+          <p style="color: #666; font-size: 14px;">驗證碼 10 分鐘內有效。若您並未申請重設密碼，請忽略此信。</p>
+        </div>
+      `,
+    });
   }
 
   /** 以驗證碼重設密碼 */
