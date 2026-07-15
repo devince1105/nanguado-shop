@@ -286,7 +286,7 @@ export default function AdminMediaPage() {
               <button
                 key={m.id}
                 onClick={() => setEditing(m)}
-                className="group relative aspect-square overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 text-left"
+                className="group relative aspect-square overflow-hidden border border-neutral-200 bg-neutral-100 text-left"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -325,7 +325,7 @@ export default function AdminMediaPage() {
                     <tr key={m.id} className="hover:bg-neutral-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                          <div className="h-11 w-11 shrink-0 overflow-hidden border border-neutral-200 bg-neutral-100">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={m.url}
@@ -504,7 +504,7 @@ function EditMediaModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold text-neutral-900">編輯媒體</h2>
-        <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
+        <div className="mt-4 overflow-hidden border border-neutral-200 bg-neutral-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={media.url}
