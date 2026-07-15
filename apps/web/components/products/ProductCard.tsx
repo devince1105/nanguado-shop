@@ -11,10 +11,10 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group block overflow-hidden rounded-xl transition-shadow hover:shadow-lg"
+      className="group block overflow-hidden transition-shadow hover:shadow-lg"
     >
       {/* 1:1 商品圖，hover 切換第二張 + 放大 */}
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100">
+      <div className="relative aspect-square overflow-hidden bg-neutral-100">
         {firstImage && (
           <Image
             src={firstImage}
