@@ -86,7 +86,7 @@ export function ProductDetail({ product }: { product: Product }) {
       <div>
         {/* 桌面：大圖 + 縮圖 */}
         <div className="hidden lg:block">
-          <div className="relative aspect-square overflow-hidden rounded-2xl bg-neutral-100">
+          <div className="relative aspect-square overflow-hidden bg-neutral-100">
             {product.images[activeImage] && (
               <Image
                 src={product.images[activeImage]}
@@ -104,7 +104,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 <button
                   key={image}
                   onClick={() => setActiveImage(index)}
-                  className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                  className={`relative h-20 w-20 shrink-0 overflow-hidden border-2 transition-colors ${
                     index === activeImage
                       ? "border-pumpkin-600"
                       : "border-transparent hover:border-neutral-300"
