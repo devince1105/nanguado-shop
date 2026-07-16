@@ -1,29 +1,17 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { OrdersService, type CreateOrderDto } from "./orders.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
-import { getUserIdFromAuthHeader } from "../auth/jwt.util";
-
-function getUserIdFromRequest(req: any): string | undefined {
-  return getUserIdFromAuthHeader(req.headers.authorization);
-}
 
 @Controller("orders")
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  // 下單必須登入（一般會員或 Google 皆可）：訂單一律歸戶，不再收訪客單
   @Post()
-  create(@Body() dto: CreateOrderDto, @Req() req: any) {
-    const userId = getUserIdFromRequest(req);
-    return this.ordersService.create({ ...dto, userId });
+  @UseGuards(AuthGuard)
+  create(@Body() dto: CreateOrderDto, @CurrentUser() user: { userId: string }) {
+    return this.ordersService.create({ ...dto, userId: user.userId });
   }
 
   @Get()

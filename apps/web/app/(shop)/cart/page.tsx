@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { formatPrice } from "@/lib/api";
 import { useCartStore } from "@/lib/store/cart";
+import { useAuthStore } from "@/lib/store/auth";
 import { useToastStore } from "@/lib/store/toast";
 import {
   calcShippingFee,
@@ -124,6 +125,7 @@ export default function CartPage() {
   const cart = useCartStore((s) => s.cart);
   const loading = useCartStore((s) => s.loading);
   const fetchCart = useCartStore((s) => s.fetchCart);
+  const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
     fetchCart().catch(() => {});
@@ -193,10 +195,10 @@ export default function CartPage() {
               <span className="text-pumpkin-700">{formatPrice(total)}</span>
             </div>
             <Link
-              href="/checkout"
+              href={token ? "/checkout" : "/login?redirect=/checkout"}
               className="mt-3 block rounded-full bg-pumpkin-600 py-3.5 text-center text-base font-bold text-white transition-colors hover:bg-pumpkin-700"
             >
-              前往結帳
+              {token ? "前往結帳" : "登入後結帳"}
             </Link>
             <Link
               href="/products"

@@ -71,6 +71,8 @@ export default function CheckoutPage() {
 
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
+  const initAuth = useAuthStore((s) => s.initAuth);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const [fields, setFields] = useState<FormFields>({
     recipientName: "",
@@ -178,6 +180,19 @@ export default function CheckoutPage() {
   const shippingFee = calcShippingFee(subtotal);
   const total = subtotal + shippingFee;
 
+  // 還原登入狀態；完成後才判斷是否需要導去登入，避免重新整理時誤踢已登入者
+  useEffect(() => {
+    initAuth().finally(() => setAuthChecked(true));
+  }, [initAuth]);
+
+  // 未登入 → 導去登入頁（登入後帶回結帳）；下單一律需登入
+  useEffect(() => {
+    if (authChecked && !token) {
+      redirectingRef.current = true;
+      router.replace("/login?redirect=/checkout");
+    }
+  }, [authChecked, token, router]);
+
   // 購物車為空（且非付款跳轉中）導回購物車頁
   useEffect(() => {
     if (cart && items.length === 0 && !redirectingRef.current) {
@@ -264,6 +279,15 @@ export default function CheckoutPage() {
 
   const inputClass =
     "w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm focus:border-pumpkin-500 focus:outline-none";
+
+  // 尚未還原登入狀態，或未登入（即將導向登入頁）→ 顯示載入中，不閃出結帳表單
+  if (!authChecked || !token) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-16 text-center text-sm text-neutral-500">
+        載入中…
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
