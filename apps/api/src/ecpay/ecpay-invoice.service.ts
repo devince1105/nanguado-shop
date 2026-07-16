@@ -89,18 +89,18 @@ export class EcpayInvoiceService {
       dataPayload.Print = "0";
       dataPayload.Donation = "0";
       if (order.carrierType === "mobile") {
-        dataPayload.CarrierType = "2"; // 手機條碼
+        dataPayload.CarrierType = "3"; // 手機條碼 (修正為 3)
         dataPayload.CarrierNum = order.carrierNum || "";
       } else if (order.carrierType === "natural") {
-        dataPayload.CarrierType = "3"; // 自然人憑證
+        dataPayload.CarrierType = "2"; // 自然人憑證 (修正為 2)
         dataPayload.CarrierNum = order.carrierNum || "";
       } else {
-        dataPayload.CarrierType = "1"; // 綠界託管載具/會員載具
+        dataPayload.CarrierType = ""; // 會員載具改為空字串，防止缺少 CustomerID 被綠界退件
       }
     } else {
       dataPayload.Print = "0";
       dataPayload.Donation = "0";
-      dataPayload.CarrierType = "1"; // 預設使用綠界託管/會員載具
+      dataPayload.CarrierType = ""; // 個人雲端發票預設載具改為空字串，防止缺少 CustomerID
     }
 
     try {
@@ -171,11 +171,11 @@ export class EcpayInvoiceService {
     const apiUrl = "https://einvoice-stage.ecpay.com.tw/B2CInvoice/Invalid";
     const ecpay = this.getEcpayInvoiceService();
 
-    // Data 內層參數
+    // Data 內層參數 (InvoiceDate 需格式化為 YYYY-MM-DD)
     const dataPayload = {
       MerchantID: merchantId,
       InvoiceNo: invoiceNo,
-      InvoiceDate: invoiceDate,
+      InvoiceDate: invoiceDate.slice(0, 10),
       Reason: reason,
     };
 
