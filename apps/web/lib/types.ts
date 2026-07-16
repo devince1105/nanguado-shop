@@ -91,6 +91,15 @@ export type Order = {
   paymentType: string | null;
   paidAt: string | null;
   createdAt: string;
+  invoiceType: "individual" | "carrier" | "company" | "donate";
+  carrierType?: "member" | "mobile" | "natural" | null;
+  carrierNum?: string | null;
+  companyTaxId?: string | null;
+  companyTitle?: string | null;
+  donationCode?: string | null;
+  invoiceNo?: string | null;
+  invoiceStatus: "unissued" | "issued" | "voided" | "failed";
+  invoiceRtnCode?: number | null;
   items: OrderItem[];
   subtotal: number;
   shippingFee: number;

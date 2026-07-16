@@ -11,6 +11,23 @@ import { useToastStore } from "@/lib/store/toast";
 import { useAuthStore } from "@/lib/store/auth";
 import { calcShippingFee, type EcpayPayment, type Order } from "@/lib/types";
 
+// 台灣公司統一編號 Checksum 校驗
+function validateTaxId(taxId: string): boolean {
+  if (!/^\d{8}$/.test(taxId)) return false;
+  const multipliers = [1, 2, 1, 2, 1, 2, 4, 1];
+  let sum = 0;
+  let hasSeven = false;
+  for (let i = 0; i < 8; i++) {
+    const num = parseInt(taxId[i]);
+    const product = num * multipliers[i];
+    sum += Math.floor(product / 10) + (product % 10);
+    if (i === 6 && num === 7) hasSeven = true;
+  }
+  if (sum % 5 === 0) return true;
+  if (hasSeven && (sum - 9) % 5 === 0) return true;
+  return false;
+}
+
 type FormFields = {
   recipientName: string;
   recipientPhone: string;
@@ -21,6 +38,12 @@ type FormFields = {
   cvsStoreName?: string;
   cvsStoreAddress?: string;
   cvsSubType?: string;
+  invoiceType: "individual" | "carrier" | "company" | "donate";
+  carrierType: "member" | "mobile" | "natural";
+  carrierNum: string;
+  companyTaxId: string;
+  companyTitle: string;
+  donationCode: string;
 };
 
 /** 將綠界付款表單以隱藏 form POST 到綠界收銀台 */
@@ -59,6 +82,12 @@ export default function CheckoutPage() {
     cvsStoreName: "",
     cvsStoreAddress: "",
     cvsSubType: "UNIMARTC2C",
+    invoiceType: "individual",
+    carrierType: "member",
+    carrierNum: "",
+    companyTaxId: "",
+    companyTitle: "",
+    donationCode: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const redirectingRef = useRef(false);
@@ -169,6 +198,35 @@ export default function CheckoutPage() {
     if (fields.shippingType === "cvs" && !fields.cvsStoreId) {
       showToast("請選擇超商取貨門市", "error");
       return;
+    }
+
+    // 發票開立額外驗證
+    if (fields.invoiceType === "carrier") {
+      if (fields.carrierType === "mobile") {
+        if (!fields.carrierNum || !/^\/[0-9A-Z.+-]{7}$/.test(fields.carrierNum)) {
+          showToast("手機條碼格式錯誤，應為 / 開頭加 7 碼英數或符號", "error");
+          return;
+        }
+      } else if (fields.carrierType === "natural") {
+        if (!fields.carrierNum || !/^[A-Z]{2}\d{14}$/.test(fields.carrierNum)) {
+          showToast("自然人憑證格式錯誤，應為 2 碼大寫英文加 14 碼數字", "error");
+          return;
+        }
+      }
+    } else if (fields.invoiceType === "company") {
+      if (!fields.companyTaxId || !validateTaxId(fields.companyTaxId)) {
+        showToast("統一編號格式或檢查碼不正確", "error");
+        return;
+      }
+      if (!fields.companyTitle) {
+        showToast("請輸入公司抬頭", "error");
+        return;
+      }
+    } else if (fields.invoiceType === "donate") {
+      if (!fields.donationCode || !/^\d{3,7}$/.test(fields.donationCode)) {
+        showToast("愛心碼格式錯誤，應為 3 至 7 碼數字", "error");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -393,6 +451,186 @@ export default function CheckoutPage() {
               </p>
             </div>
           </label>
+
+          <h2 className="mt-8 text-base font-bold text-neutral-900">發票資訊</h2>
+          <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 space-y-4 shadow-sm">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                發票類型 <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {(
+                  [
+                    { id: "individual", label: "個人雲端" },
+                    { id: "carrier", label: "載具發票" },
+                    { id: "company", label: "公司三聯" },
+                    { id: "donate", label: "捐贈發票" },
+                  ] as const
+                ).map((opt) => (
+                  <label
+                    key={opt.id}
+                    className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-center text-xs font-semibold transition-all ${
+                      fields.invoiceType === opt.id
+                        ? "border-pumpkin-600 bg-pumpkin-50/50 text-pumpkin-800 ring-1 ring-pumpkin-600/10"
+                        : "border-neutral-200 bg-white hover:border-neutral-300 text-neutral-600"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="invoiceType"
+                      checked={fields.invoiceType === opt.id}
+                      onChange={() =>
+                        setFields((prev) => ({
+                          ...prev,
+                          invoiceType: opt.id,
+                          carrierType: "member",
+                          carrierNum: "",
+                          companyTaxId: "",
+                          companyTitle: "",
+                          donationCode: "",
+                        }))
+                      }
+                      className="sr-only"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* 載具發票選項 */}
+            {fields.invoiceType === "carrier" && (
+              <div className="space-y-3 rounded-lg bg-neutral-50 p-3.5">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-neutral-600">
+                    載具類型
+                  </label>
+                  <div className="flex gap-4 mt-1">
+                    {(
+                      [
+                        { id: "member", label: "會員載具" },
+                        { id: "mobile", label: "手機條碼" },
+                        { id: "natural", label: "自然人憑證" },
+                      ] as const
+                    ).map((opt) => (
+                      <label
+                        key={opt.id}
+                        className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-neutral-600"
+                      >
+                        <input
+                          type="radio"
+                          name="carrierType"
+                          checked={fields.carrierType === opt.id}
+                          onChange={() =>
+                            setFields((prev) => ({
+                              ...prev,
+                              carrierType: opt.id,
+                              carrierNum: "",
+                            }))
+                          }
+                          className="accent-pumpkin-600 h-3.5 w-3.5"
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {fields.carrierType === "mobile" && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">
+                      手機條碼 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      value={fields.carrierNum}
+                      onChange={setField("carrierNum")}
+                      placeholder="/ABC1234"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+
+                {fields.carrierType === "natural" && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">
+                      自然人憑證 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      value={fields.carrierNum}
+                      onChange={setField("carrierNum")}
+                      placeholder="AB12345678901234"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 公司三聯式發票 */}
+            {fields.invoiceType === "company" && (
+              <div className="grid gap-3 rounded-lg bg-neutral-50 p-3.5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-neutral-600">
+                    統一編號 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    maxLength={8}
+                    value={fields.companyTaxId}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setFields((prev) => ({ ...prev, companyTaxId: val }));
+                    }}
+                    placeholder="12345678"
+                    className={inputClass}
+                  />
+                  {fields.companyTaxId &&
+                    fields.companyTaxId.length === 8 &&
+                    !validateTaxId(fields.companyTaxId) && (
+                      <p className="mt-1 text-xs font-semibold text-red-500">
+                        ⚠️ 統一編號檢查碼驗證失敗，請再次確認。
+                      </p>
+                    )}
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-neutral-600">
+                    公司抬頭 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    value={fields.companyTitle}
+                    onChange={setField("companyTitle")}
+                    placeholder="南瓜多工作室"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 捐贈發票 */}
+            {fields.invoiceType === "donate" && (
+              <div className="rounded-lg bg-neutral-50 p-3.5">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-neutral-600">
+                    愛心碼 (3~7 碼) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    maxLength={7}
+                    value={fields.donationCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setFields((prev) => ({ ...prev, donationCode: val }));
+                    }}
+                    placeholder="178"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 右：訂單摘要 */}

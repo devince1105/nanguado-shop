@@ -2,6 +2,7 @@ import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
 import { getDb, orders, products, type Order, type OrderItem } from "@repo/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
+import { EcpayInvoiceService } from "./ecpay-invoice.service";
 import { MailService } from "../mail/mail.service";
 
 @Controller("ecpay")
@@ -10,6 +11,7 @@ export class EcpayController {
 
   constructor(
     private readonly paymentService: EcpayPaymentService,
+    private readonly invoiceService: EcpayInvoiceService,
     private readonly mailService: MailService,
   ) {}
 
@@ -92,9 +94,9 @@ export class EcpayController {
     }
     this.logger.log(`✅ 訂單 ${merchantTradeNo} 付款成功，已原子扣減庫存`);
 
-    // 寄送付款成功通知信（失敗不影響回覆綠界）
-    this.sendPaidEmail(orderRecord).catch((err) =>
-      this.logger.error("付款通知信寄送失敗", err),
+    // 觸發發票開立（開立完成後將自動寄送付款成功通知信）
+    this.issueInvoice(orderRecord.id).catch((err) =>
+      this.logger.error("發票處理與信件發送失敗", err),
     );
 
     return "1|OK";
@@ -130,6 +132,11 @@ export class EcpayController {
           </tr>
         </table>
         <p style="color:#666;font-size:14px;">寄送地址：${order.recipientAddress}</p>
+        ${
+          order.invoiceNo
+            ? `<p style="color:#666;font-size:14px;">電子發票號碼：<b style="color:#ea580c;">${order.invoiceNo}</b></p>`
+            : ""
+        }
         <hr style="border:0;border-top:1px solid #eee;margin:20px 0;" />
         <p style="color:#999;font-size:12px;text-align:center;">南瓜多 本舖 團隊 敬上</p>
       </div>`;
@@ -277,5 +284,57 @@ export class EcpayController {
       </body>
       </html>
     `;
+  }
+
+  /** 異步處理電子發票開立，並在完成後寄出付款確認信 */
+  private async issueInvoice(orderId: string) {
+    try {
+      const db = getDb();
+      const order = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        with: { items: true },
+      });
+      if (!order) return;
+
+      const result = await this.invoiceService.issueInvoice(order, order.items);
+      if (result.success && result.invoiceNo) {
+        await db
+          .update(orders)
+          .set({
+            invoiceNo: result.invoiceNo,
+            invoiceStatus: "issued",
+            invoiceRtnCode: result.rtnCode,
+            updatedAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+
+        // 重新讀取更新後的訂單，發送帶有發票號碼的電子郵件
+        const updatedOrder = await db.query.orders.findFirst({
+          where: eq(orders.id, orderId),
+          with: { items: true },
+        });
+        if (updatedOrder) {
+          this.sendPaidEmail(updatedOrder).catch((err) =>
+            this.logger.error("付款通知信（含發票號碼）寄送失敗", err),
+          );
+        }
+      } else {
+        await db
+          .update(orders)
+          .set({
+            invoiceStatus: "failed",
+            invoiceRtnCode: result.rtnCode,
+            updatedAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+
+        // 就算發票開立失敗，也應寄出付款成功通知信
+        this.sendPaidEmail(order).catch((err) =>
+          this.logger.error("付款通知信（無發票號碼）寄送失敗", err),
+        );
+      }
+    } catch (err) {
+      this.logger.error(`[Invoice] 異步發票發送發生例外`, err as Error);
+    }
   }
 }

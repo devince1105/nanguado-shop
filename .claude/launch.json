@@ -2,11 +2,14 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "nanguado-dev",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "name": "nanguado-web",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=/Users/vincelo/.nvm/versions/node/v22.22.0/bin:$PATH && pnpm --filter @repo/web dev"
+      ],
       "port": 3000,
-      "autoPort": true
+      "autoPort": false
     }
   ]
 }

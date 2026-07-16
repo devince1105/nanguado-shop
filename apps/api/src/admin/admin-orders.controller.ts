@@ -32,4 +32,9 @@ export class AdminOrdersController {
   updateStatus(@Param("id") id: string, @Body() body: { status: string }) {
     return this.ordersService.updateStatus(id, body?.status);
   }
+
+  @Patch(":id/void-invoice")
+  voidInvoice(@Param("id") id: string) {
+    return this.ordersService.voidInvoice(id);
+  }
 }

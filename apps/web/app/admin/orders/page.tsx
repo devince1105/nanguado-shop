@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useToastStore } from "@/lib/store/toast";
-import { formatPrice } from "@/lib/api";
+import { formatPrice, API_URL } from "@/lib/api";
 import { getAdminOrders, updateOrderStatus } from "@/lib/admin-api";
 import type { Order } from "@/lib/types";
 
@@ -215,7 +215,7 @@ export default function AdminOrdersPage() {
                     {isExpanded && (
                       <tr className="bg-neutral-50/40">
                         <td colSpan={7} className="px-6 py-4">
-                          <div className="grid gap-6 sm:grid-cols-2">
+                          <div className="grid gap-6 sm:grid-cols-3">
                             <div>
                               <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
                                 訂購商品
@@ -291,6 +291,110 @@ export default function AdminOrdersPage() {
                                     付款方式：{order.paymentType}
                                   </p>
                                 )}
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                                發票資訊
+                              </h4>
+                              <div className="mt-2 space-y-2.5 text-sm text-neutral-700">
+                                <div>
+                                  <p>
+                                    發票類型：
+                                    <span className="font-semibold text-neutral-900">
+                                      {order.invoiceType === "individual"
+                                        ? "個人雲端"
+                                        : order.invoiceType === "carrier"
+                                          ? "載具發票"
+                                          : order.invoiceType === "company"
+                                            ? "公司三聯"
+                                            : "捐贈發票"}
+                                    </span>
+                                  </p>
+                                </div>
+                                {order.invoiceType === "carrier" && (
+                                  <p className="text-xs text-neutral-500 bg-neutral-100/60 rounded px-2 py-1 inline-block">
+                                    載具：{order.carrierType === "member" ? "會員載具" : order.carrierType === "mobile" ? `手機條碼 (${order.carrierNum})` : `自然人憑證 (${order.carrierNum})`}
+                                  </p>
+                                )}
+                                {order.invoiceType === "company" && (
+                                  <div className="text-xs text-neutral-600 space-y-0.5 bg-neutral-100/60 rounded p-2">
+                                    <p>公司統編：<b>{order.companyTaxId}</b></p>
+                                    <p>公司抬頭：{order.companyTitle}</p>
+                                  </div>
+                                )}
+                                {order.invoiceType === "donate" && (
+                                  <p className="text-xs text-neutral-500 bg-neutral-100/60 rounded px-2 py-1 inline-block">
+                                    愛心碼：{order.donationCode}
+                                  </p>
+                                )}
+
+                                <div className="border-t border-neutral-200/60 pt-2 space-y-1.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs text-neutral-400">發票狀態：</span>
+                                    {order.invoiceStatus === "unissued" ? (
+                                      <span className="inline-flex rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-800">
+                                        未開立
+                                      </span>
+                                    ) : order.invoiceStatus === "issued" ? (
+                                      <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                                        已開立
+                                      </span>
+                                    ) : order.invoiceStatus === "voided" ? (
+                                      <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                                        已作廢
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                        開立失敗
+                                      </span>
+                                    )}
+                                  </div>
+                                  {order.invoiceNo && (
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-bold text-pumpkin-600">發票號碼：{order.invoiceNo}</p>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(order.invoiceNo!);
+                                          showToast("已複製發票號碼！", "success");
+                                        }}
+                                        className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 underline cursor-pointer"
+                                      >
+                                        複製
+                                      </button>
+                                    </div>
+                                  )}
+                                  {order.invoiceStatus === "issued" && order.invoiceNo && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (confirm(`確定要作廢發票 ${order.invoiceNo} 嗎？`)) {
+                                          try {
+                                            const res = await fetch(`${API_URL}/api/v1/admin/orders/${order.id}/void-invoice`, {
+                                              method: "PATCH",
+                                              headers: {
+                                                Authorization: `Bearer ${token}`,
+                                              },
+                                            });
+                                            if (!res.ok) {
+                                              const body = await res.json().catch(() => null);
+                                              throw new Error(body?.message || "作廢請求失敗");
+                                            }
+                                            showToast("電子發票已成功作廢！", "success");
+                                            // 重新加載訂單
+                                            window.location.reload();
+                                          } catch (err) {
+                                            showToast(err instanceof Error ? err.message : "作廢失敗", "error");
+                                          }
+                                        }
+                                      }}
+                                      className="mt-1 w-full rounded-md border border-red-200 bg-white hover:bg-red-50 text-red-600 px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-all text-center cursor-pointer"
+                                    >
+                                      🚫 作廢此張發票
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>

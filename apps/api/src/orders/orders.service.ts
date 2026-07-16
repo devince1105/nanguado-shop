@@ -13,6 +13,7 @@ import {
 import { and, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { CartService } from "../cart/cart.service";
 import { EcpayPaymentService } from "../ecpay/ecpay-payment.service";
+import { EcpayInvoiceService } from "../ecpay/ecpay-invoice.service";
 
 /** 滿 NT$1,000 免運，未滿收 NT$60 */
 const FREE_SHIPPING_THRESHOLD = 1000;
@@ -51,6 +52,12 @@ export type CreateOrderDto = {
   cvsStoreName?: string;
   cvsStoreAddress?: string;
   cvsSubType?: string;
+  invoiceType?: "individual" | "carrier" | "company" | "donate";
+  carrierType?: "member" | "mobile" | "natural";
+  carrierNum?: string;
+  companyTaxId?: string;
+  companyTitle?: string;
+  donationCode?: string;
 };
 
 /** 產生綠界 MerchantTradeNo：NGD + 13 位時間戳 + 4 位隨機數（共 20 字元） */
@@ -61,11 +68,28 @@ function generateMerchantTradeNo() {
   return `NGD${Date.now()}${rand}`;
 }
 
+export function validateTaxId(taxId: string): boolean {
+  if (!/^\d{8}$/.test(taxId)) return false;
+  const multipliers = [1, 2, 1, 2, 1, 2, 4, 1];
+  let sum = 0;
+  let hasSeven = false;
+  for (let i = 0; i < 8; i++) {
+    const num = parseInt(taxId[i]);
+    const product = num * multipliers[i];
+    sum += Math.floor(product / 10) + (product % 10);
+    if (i === 6 && num === 7) hasSeven = true;
+  }
+  if (sum % 5 === 0) return true;
+  if (hasSeven && (sum - 9) % 5 === 0) return true;
+  return false;
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly cartService: CartService,
     private readonly ecpayPaymentService: EcpayPaymentService,
+    private readonly ecpayInvoiceService: EcpayInvoiceService,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -74,6 +98,31 @@ export class OrdersService {
     for (const field of requiredFields) {
       if (!dto?.[field]) {
         throw new BadRequestException(`缺少必填欄位：${field}`);
+      }
+    }
+
+    // 發票校驗與格式校驗
+    const invoiceType = dto.invoiceType || "individual";
+    if (invoiceType === "carrier") {
+      if (dto.carrierType === "mobile") {
+        if (!dto.carrierNum || !/^\/[0-9A-Z.+-]{7}$/.test(dto.carrierNum)) {
+          throw new BadRequestException("手機條碼格式錯誤，應為 / 開頭加 7 碼英數或符號");
+        }
+      } else if (dto.carrierType === "natural") {
+        if (!dto.carrierNum || !/^[A-Z]{2}\d{14}$/.test(dto.carrierNum)) {
+          throw new BadRequestException("自然人憑證格式錯誤，應為 2 碼大寫英文加 14 碼數字");
+        }
+      }
+    } else if (invoiceType === "company") {
+      if (!dto.companyTaxId || !validateTaxId(dto.companyTaxId)) {
+        throw new BadRequestException("統一編號格式或檢查碼不正確");
+      }
+      if (!dto.companyTitle) {
+        throw new BadRequestException("公司發票缺少公司抬頭");
+      }
+    } else if (invoiceType === "donate") {
+      if (!dto.donationCode || !/^\d{3,7}$/.test(dto.donationCode)) {
+        throw new BadRequestException("愛心碼格式錯誤，應為 3 至 7 碼數字");
       }
     }
 
@@ -174,6 +223,14 @@ export class OrdersService {
         cvsStoreName: dto.cvsStoreName || null,
         cvsStoreAddress: dto.cvsStoreAddress || null,
         cvsSubType: dto.cvsSubType || null,
+        // 發票欄位
+        invoiceType,
+        carrierType: dto.carrierType || null,
+        carrierNum: dto.carrierNum || null,
+        companyTaxId: dto.companyTaxId || null,
+        companyTitle: dto.companyTitle || null,
+        donationCode: dto.donationCode || null,
+        invoiceStatus: "unissued",
       })
       .returning();
 
@@ -396,5 +453,33 @@ export class OrdersService {
       success: true,
       payment,
     };
+  }
+
+  async voidInvoice(id: string) {
+    const db = getDb();
+    const order = await db.query.orders.findFirst({
+      where: eq(orders.id, id),
+    });
+    if (!order) {
+      throw new NotFoundException(`找不到該訂單：${id}`);
+    }
+    if (order.invoiceStatus !== "issued" || !order.invoiceNo) {
+      throw new BadRequestException("此訂單無已開立之電子發票，無法作廢");
+    }
+
+    const result = await this.ecpayInvoiceService.voidInvoice(order.invoiceNo);
+    if (!result.success) {
+      throw new BadRequestException(`發票作廢失敗：${result.message}`);
+    }
+
+    await db
+      .update(orders)
+      .set({
+        invoiceStatus: "voided",
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, id));
+
+    return this.getById(id);
   }
 }

@@ -22,7 +22,7 @@ export class EcpayService {
    * 依綠界規範產生 CheckMacValue：
    * 參數 A-Z 排序 → HashKey/HashIV 前後包夾 → URL encode（.NET 風格）→ SHA256 大寫。
    */
-  generateCheckMacValue(params: Record<string, any>): string {
+  generateCheckMacValue(params: Record<string, any>, hashType: "sha256" | "md5" = "sha256"): string {
     const sortedKeys = Object.keys(params)
       .filter((key) => key !== "CheckMacValue")
       .sort((a, b) => a.localeCompare(b));
@@ -45,7 +45,7 @@ export class EcpayService {
       .replace(/%20/g, "+"); // 綠界規定空白須編碼為 +
 
     return crypto
-      .createHash("sha256")
+      .createHash(hashType)
       .update(urlEncodedString)
       .digest("hex")
       .toUpperCase();
