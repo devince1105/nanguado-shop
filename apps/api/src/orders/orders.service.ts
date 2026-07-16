@@ -463,11 +463,11 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`找不到該訂單：${id}`);
     }
-    if (order.invoiceStatus !== "issued" || !order.invoiceNo) {
-      throw new BadRequestException("此訂單無已開立之電子發票，無法作廢");
+    if (order.invoiceStatus !== "issued" || !order.invoiceNo || !order.invoiceDate) {
+      throw new BadRequestException("此訂單無已開立之電子發票或缺少發票日期，無法作廢");
     }
 
-    const result = await this.ecpayInvoiceService.voidInvoice(order.invoiceNo);
+    const result = await this.ecpayInvoiceService.voidInvoice(order.invoiceNo, order.invoiceDate);
     if (!result.success) {
       throw new BadRequestException(`發票作廢失敗：${result.message}`);
     }

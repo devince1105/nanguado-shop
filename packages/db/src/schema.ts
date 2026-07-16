@@ -133,6 +133,7 @@ export const orders = pgTable("orders", {
   companyTitle: varchar("company_title", { length: 100 }),
   donationCode: varchar("donation_code", { length: 10 }),
   invoiceNo: varchar("invoice_no", { length: 20 }),
+  invoiceDate: varchar("invoice_date", { length: 30 }),
   invoiceStatus: varchar("invoice_status", { length: 20 }).notNull().default("unissued"),
   invoiceRtnCode: integer("invoice_rtn_code"),
   /** 綠界回傳的付款方式，例如 Credit_CreditCard */

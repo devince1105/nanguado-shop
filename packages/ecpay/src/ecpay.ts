@@ -57,4 +57,24 @@ export class EcpayService {
     if (!received) return false;
     return this.generateCheckMacValue(payload) === received;
   }
+
+  /**
+   * AES-128-CBC 加密 (PKCS7 padding)
+   */
+  encryptAES(plainText: string): string {
+    const cipher = crypto.createCipheriv("aes-128-cbc", this.hashKey, this.hashIV);
+    let encrypted = cipher.update(plainText, "utf8", "base64");
+    encrypted += cipher.final("base64");
+    return encrypted;
+  }
+
+  /**
+   * AES-128-CBC 解密 (PKCS7 padding)
+   */
+  decryptAES(encryptedBase64: string): string {
+    const decipher = crypto.createDecipheriv("aes-128-cbc", this.hashKey, this.hashIV);
+    let decrypted = decipher.update(encryptedBase64, "base64", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  }
 }

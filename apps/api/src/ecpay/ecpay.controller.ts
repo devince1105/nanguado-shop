@@ -302,6 +302,7 @@ export class EcpayController {
           .update(orders)
           .set({
             invoiceNo: result.invoiceNo,
+            invoiceDate: result.invoiceDate || null,
             invoiceStatus: "issued",
             invoiceRtnCode: result.rtnCode,
             updatedAt: new Date(),
