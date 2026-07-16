@@ -10,7 +10,7 @@ export class MailService {
    * 其次退回 SMTP；都沒有則印 log。任何失敗都不丟錯，避免影響主流程。
    */
   async sendMail(opts: { to: string; subject: string; html: string }) {
-    const from = process.env.SMTP_FROM || `南瓜多 Shop <no-reply@nanguado.shop>`;
+    const from = process.env.SMTP_FROM || `南瓜多 本舖 <no-reply@nanguado.shop>`;
 
     // Resend API 金鑰：可用專屬變數，或沿用 SMTP_PASS（re_ 開頭）
     const resendKey =

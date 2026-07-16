@@ -4,11 +4,11 @@ import { inArray } from "drizzle-orm";
 
 /** 公開設定的鍵與預設值（白牌可覆寫） */
 export const DEFAULT_SETTINGS = {
-  shopName: "南瓜多 Shop",
+  shopName: "南瓜多 本舖",
   shopTagline: "原創設計商店，把喜歡的穿在身上。",
   shopEmoji: "🎃",
   shopDescription:
-    "南瓜多 Shop — 原創 T 恤、帽子配件與文創小物，把喜歡的穿在身上。",
+    "南瓜多 本舖 — 原創 T 恤、帽子配件與文創小物，把喜歡的穿在身上。",
 };
 
 export type SiteSettings = typeof DEFAULT_SETTINGS;

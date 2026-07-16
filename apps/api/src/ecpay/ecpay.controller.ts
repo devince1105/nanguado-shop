@@ -131,7 +131,7 @@ export class EcpayController {
         </table>
         <p style="color:#666;font-size:14px;">寄送地址：${order.recipientAddress}</p>
         <hr style="border:0;border-top:1px solid #eee;margin:20px 0;" />
-        <p style="color:#999;font-size:12px;text-align:center;">南瓜多 Shop 團隊 敬上</p>
+        <p style="color:#999;font-size:12px;text-align:center;">南瓜多 本舖 團隊 敬上</p>
       </div>`;
 
     await this.mailService.sendMail({

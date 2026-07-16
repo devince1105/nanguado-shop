@@ -114,17 +114,17 @@ export class AuthService {
     this.mailService
       .sendMail({
         to: cleanEmail,
-        subject: "【南瓜多 Shop】會員註冊驗證信",
+        subject: "【南瓜多 本舖】會員註冊驗證信",
         html: `
           <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
-            <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 南瓜多 Shop 會員註冊</h2>
-            <p>您好，感謝您註冊南瓜多 Shop！以下是您的註冊驗證碼：</p>
+            <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 南瓜多 本舖 會員註冊</h2>
+            <p>您好，感謝您註冊南瓜多 本舖！以下是您的註冊驗證碼：</p>
             <div style="background-color: #fff7ed; border: 1px dashed #fdba74; padding: 15px; text-align: center; margin: 20px 0;">
               <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #c2410c;">${code}</span>
             </div>
             <p style="color: #666; font-size: 14px;">此驗證碼有效期限為 10 分鐘，請儘速於註冊頁面中完成驗證。如果您沒有進行此項操作，請忽略此郵件。</p>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #999; font-size: 12px; text-align: center;">南瓜多 Shop 團隊 敬上</p>
+            <p style="color: #999; font-size: 12px; text-align: center;">南瓜多 本舖 團隊 敬上</p>
           </div>
         `,
       })
@@ -166,7 +166,7 @@ export class AuthService {
   private async deliverResetEmail(email: string, code: string) {
     await this.mailService.sendMail({
       to: email,
-      subject: "【南瓜多 Shop】密碼重設驗證碼",
+      subject: "【南瓜多 本舖】密碼重設驗證碼",
       html: `
         <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 10px;">🎃 密碼重設</h2>
