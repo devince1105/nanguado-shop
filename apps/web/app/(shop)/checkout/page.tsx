@@ -119,7 +119,7 @@ export default function CheckoutPage() {
     form.target = "ecpayMap";
 
     const params = {
-      MerchantID: "2000132",
+      MerchantID: "2000933",
       LogisticsType: "CVS",
       LogisticsSubType: subType,
       IsCollection: "N",
