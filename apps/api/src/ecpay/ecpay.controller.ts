@@ -213,6 +213,7 @@ export class EcpayController {
     const cvsStoreName = payload.CVSStoreName || "";
     const cvsAddress = payload.CVSAddress || "";
     const cvsSubType = payload.LogisticsSubType || "";
+    const webBase = process.env.WEB_BASE_URL ?? "http://localhost:3000";
 
     return `
       <!DOCTYPE html>
@@ -267,7 +268,7 @@ export class EcpayController {
               cvsStoreName: "${cvsStoreName}",
               cvsStoreAddress: "${cvsAddress}",
               cvsSubType: "${cvsSubType}"
-            }, "*");
+            }, "${webBase}");
           }
           setTimeout(() => {
             window.close();

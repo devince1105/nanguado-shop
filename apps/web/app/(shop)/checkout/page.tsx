@@ -58,7 +58,7 @@ export default function CheckoutPage() {
     cvsStoreId: "",
     cvsStoreName: "",
     cvsStoreAddress: "",
-    cvsSubType: "UNIGB",
+    cvsSubType: "UNIMARTC2C",
   });
   const [submitting, setSubmitting] = useState(false);
   const redirectingRef = useRef(false);
@@ -79,6 +79,10 @@ export default function CheckoutPage() {
   // 監聽綠界電子地圖選擇完畢的回傳訊息
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
+      // 驗證訊息來源 origin 是否與後端 API origin 相同，防止跨站腳本攻擊與惡意塞值
+      const apiOrigin = new URL(API_URL).origin;
+      if (event.origin !== apiOrigin) return;
+
       if (event.data?.type === "ECPAY_CVS_SELECT") {
         const { cvsStoreId, cvsStoreName, cvsStoreAddress, cvsSubType } = event.data;
         setFields((prev) => ({
@@ -277,9 +281,9 @@ export default function CheckoutPage() {
                   <div className="flex gap-6 mt-1">
                     {(
                       [
-                        { id: "UNIGB", label: "7-11" },
-                        { id: "FAMI", label: "全家" },
-                        { id: "HILIFE", label: "萊爾富" },
+                        { id: "UNIMARTC2C", label: "7-11" },
+                        { id: "FAMIC2C", label: "全家" },
+                        { id: "HILIFEC2C", label: "萊爾富" },
                       ] as const
                     ).map((opt) => (
                       <label key={opt.id} className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700 font-medium">
@@ -301,11 +305,11 @@ export default function CheckoutPage() {
                     <div className="rounded-lg border border-pumpkin-200 bg-white p-3.5 shadow-sm">
                       <div className="flex items-center justify-between border-b border-neutral-100 pb-2 mb-2">
                         <span className="inline-flex items-center rounded-full bg-pumpkin-100 px-2.5 py-0.5 text-xs font-semibold text-pumpkin-800">
-                          {fields.cvsSubType === "UNIGB" ? "7-11" : fields.cvsSubType === "FAMI" ? "全家" : "萊爾富"} {fields.cvsStoreName} ({fields.cvsStoreId})
+                          {fields.cvsSubType === "UNIMARTC2C" ? "7-11" : fields.cvsSubType === "FAMIC2C" ? "全家" : "萊爾富"} {fields.cvsStoreName} ({fields.cvsStoreId})
                         </span>
                         <button
                           type="button"
-                          onClick={() => openEcpayMap(fields.cvsSubType || "UNIGB")}
+                          onClick={() => openEcpayMap(fields.cvsSubType || "UNIMARTC2C")}
                           className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 hover:underline"
                         >
                           重新選擇門市
@@ -316,7 +320,7 @@ export default function CheckoutPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => openEcpayMap(fields.cvsSubType || "UNIGB")}
+                      onClick={() => openEcpayMap(fields.cvsSubType || "UNIMARTC2C")}
                       className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 py-5 text-sm font-semibold text-neutral-500 hover:border-pumpkin-500 hover:text-pumpkin-600 bg-white transition-all shadow-sm"
                     >
                       🏪 點擊開啟地圖選擇超商門市
