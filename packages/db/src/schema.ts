@@ -120,6 +120,11 @@ export const orders = pgTable("orders", {
   recipientPhone: varchar("recipient_phone", { length: 30 }).notNull(),
   recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
   recipientAddress: text("recipient_address").notNull(),
+  shippingType: varchar("shipping_type", { length: 20 }).notNull().default("home"),
+  cvsStoreId: varchar("cvs_store_id", { length: 20 }),
+  cvsStoreName: varchar("cvs_store_name", { length: 100 }),
+  cvsStoreAddress: text("cvs_store_address"),
+  cvsSubType: varchar("cvs_sub_type", { length: 20 }),
   isPaid: boolean("is_paid").notNull().default(false),
   /** 綠界回傳的付款方式，例如 Credit_CreditCard */
   paymentType: varchar("payment_type", { length: 50 }),

@@ -16,6 +16,11 @@ type FormFields = {
   recipientPhone: string;
   recipientEmail: string;
   recipientAddress: string;
+  shippingType: "home" | "cvs";
+  cvsStoreId?: string;
+  cvsStoreName?: string;
+  cvsStoreAddress?: string;
+  cvsSubType?: string;
 };
 
 /** 將綠界付款表單以隱藏 form POST 到綠界收銀台 */
@@ -49,6 +54,11 @@ export default function CheckoutPage() {
     recipientPhone: "",
     recipientEmail: "",
     recipientAddress: "",
+    shippingType: "home",
+    cvsStoreId: "",
+    cvsStoreName: "",
+    cvsStoreAddress: "",
+    cvsSubType: "UNIGB",
   });
   const [submitting, setSubmitting] = useState(false);
   const redirectingRef = useRef(false);
@@ -56,14 +66,75 @@ export default function CheckoutPage() {
   // 登入時自動帶入收件人資訊
   useEffect(() => {
     if (user) {
-      setFields({
-        recipientName: user.name || "",
-        recipientPhone: user.phone || "",
-        recipientEmail: user.email || "",
-        recipientAddress: user.address || "",
-      });
+      setFields((prev) => ({
+        ...prev,
+        recipientName: user.name || prev.recipientName,
+        recipientPhone: user.phone || prev.recipientPhone,
+        recipientEmail: user.email || prev.recipientEmail,
+        recipientAddress: prev.shippingType === "home" ? (user.address || prev.recipientAddress) : prev.recipientAddress,
+      }));
     }
   }, [user]);
+
+  // 監聽綠界電子地圖選擇完畢的回傳訊息
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type === "ECPAY_CVS_SELECT") {
+        const { cvsStoreId, cvsStoreName, cvsStoreAddress, cvsSubType } = event.data;
+        setFields((prev) => ({
+          ...prev,
+          cvsStoreId,
+          cvsStoreName,
+          cvsStoreAddress,
+          cvsSubType,
+          recipientAddress: `${cvsStoreName} (${cvsStoreId}) - ${cvsStoreAddress}`,
+        }));
+        showToast(`已選擇門市：${cvsStoreName}`);
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [showToast]);
+
+  // 彈出綠界電子地圖視窗
+  function openEcpayMap(subType: string) {
+    const width = 1024;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    
+    const popup = window.open("", "ecpayMap", `width=${width},height=${height},left=${left},top=${top}`);
+    if (!popup) {
+      showToast("彈出視窗被瀏覽器阻擋，請開啟權限後重試！", "error");
+      return;
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://logistics-stage.ecpay.com.tw/Express/map";
+    form.target = "ecpayMap";
+
+    const params = {
+      MerchantID: "2000132",
+      LogisticsType: "CVS",
+      LogisticsSubType: subType,
+      IsCollection: "N",
+      ServerReplyURL: `${API_URL}/api/v1/ecpay/logistics-map-callback`,
+      ExtraData: "",
+    };
+
+    for (const [key, value] of Object.entries(params)) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }
 
   useEffect(() => {
     fetchCart().catch(() => {});
@@ -89,6 +160,13 @@ export default function CheckoutPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
+
+    // 額外驗證：若選擇超商取貨，必須選擇門市
+    if (fields.shippingType === "cvs" && !fields.cvsStoreId) {
+      showToast("請選擇超商取貨門市", "error");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const headers: Record<string, string> = {
@@ -98,6 +176,7 @@ export default function CheckoutPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
+      // 如果是超商取貨，送出時 recipientAddress 將自動包含門市資訊
       const res = await fetch(`${API_URL}/api/v1/orders`, {
         method: "POST",
         headers,
@@ -176,18 +255,107 @@ export default function CheckoutPage() {
                 className={inputClass}
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                收件地址 <span className="text-red-500">*</span>
-              </label>
+            {fields.shippingType === "home" ? (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                  收件地址 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  value={fields.recipientAddress}
+                  onChange={setField("recipientAddress")}
+                  placeholder="台北市信義區市府路 1 號"
+                  className={inputClass}
+                />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                    選擇超商通路 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-6 mt-1">
+                    {(
+                      [
+                        { id: "UNIGB", label: "7-11" },
+                        { id: "FAMI", label: "全家" },
+                        { id: "HILIFE", label: "萊爾富" },
+                      ] as const
+                    ).map((opt) => (
+                      <label key={opt.id} className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700 font-medium">
+                        <input
+                          type="radio"
+                          name="cvsSubType"
+                          checked={fields.cvsSubType === opt.id}
+                          onChange={() => setFields((prev) => ({ ...prev, cvsSubType: opt.id }))}
+                          className="accent-pumpkin-600 h-4 w-4"
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  {fields.cvsStoreName ? (
+                    <div className="rounded-lg border border-pumpkin-200 bg-white p-3.5 shadow-sm">
+                      <div className="flex items-center justify-between border-b border-neutral-100 pb-2 mb-2">
+                        <span className="inline-flex items-center rounded-full bg-pumpkin-100 px-2.5 py-0.5 text-xs font-semibold text-pumpkin-800">
+                          {fields.cvsSubType === "UNIGB" ? "7-11" : fields.cvsSubType === "FAMI" ? "全家" : "萊爾富"} {fields.cvsStoreName} ({fields.cvsStoreId})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openEcpayMap(fields.cvsSubType || "UNIGB")}
+                          className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 hover:underline"
+                        >
+                          重新選擇門市
+                        </button>
+                      </div>
+                      <p className="text-sm text-neutral-600 font-medium">{fields.cvsStoreAddress}</p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openEcpayMap(fields.cvsSubType || "UNIGB")}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 py-5 text-sm font-semibold text-neutral-500 hover:border-pumpkin-500 hover:text-pumpkin-600 bg-white transition-all shadow-sm"
+                    >
+                      🏪 點擊開啟地圖選擇超商門市
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <h2 className="mt-8 text-base font-bold text-neutral-900">配送方式</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-all ${fields.shippingType === "home" ? "border-pumpkin-600 bg-pumpkin-50/50 ring-2 ring-pumpkin-600/10" : "border-neutral-200 bg-white hover:border-neutral-300"}`}>
               <input
-                required
-                value={fields.recipientAddress}
-                onChange={setField("recipientAddress")}
-                placeholder="台北市信義區市府路 1 號"
-                className={inputClass}
+                type="radio"
+                name="shippingType"
+                checked={fields.shippingType === "home"}
+                onChange={() => setFields((prev) => ({ ...prev, shippingType: "home", recipientAddress: "" }))}
+                className="accent-pumpkin-600 h-4 w-4"
               />
-            </div>
+              <div>
+                <p className="text-sm font-bold text-neutral-900">宅配到府</p>
+                <p className="text-xs text-neutral-500">直接配送到您填寫的地址</p>
+              </div>
+            </label>
+
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-all ${fields.shippingType === "cvs" ? "border-pumpkin-600 bg-pumpkin-50/50 ring-2 ring-pumpkin-600/10" : "border-neutral-200 bg-white hover:border-neutral-300"}`}>
+              <input
+                type="radio"
+                name="shippingType"
+                checked={fields.shippingType === "cvs"}
+                onChange={() => setFields((prev) => ({ ...prev, shippingType: "cvs", recipientAddress: "" }))}
+                className="accent-pumpkin-600 h-4 w-4"
+              />
+              <div>
+                <p className="text-sm font-bold text-neutral-900">超商取貨</p>
+                <p className="text-xs text-neutral-500">7-11 / 全家 / 萊爾富門市</p>
+              </div>
+            </label>
           </div>
 
           <h2 className="mt-8 text-base font-bold text-neutral-900">付款方式</h2>

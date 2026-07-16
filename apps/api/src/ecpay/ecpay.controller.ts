@@ -199,4 +199,82 @@ export class EcpayController {
 
     this.logger.log(`📦 已扣減商品 ${product.name} 庫存（-${quantity}）`);
   }
+
+  /**
+   * 綠界超商電子地圖選擇門市回傳 Webhook（POST）。
+   * 當用戶在綠界地圖選完門市時，綠界會以瀏覽器 Form POST 將資訊回傳至此。
+   * 此處回傳一個簡單 HTML，藉由 window.opener.postMessage 回傳資料給主視窗後關閉。
+   */
+  @Post("logistics-map-callback")
+  @Header("Content-Type", "text/html")
+  async logisticsMapCallback(@Body() payload: Record<string, string>): Promise<string> {
+    this.logger.log(`📡 收到綠界超商地圖回傳：${JSON.stringify(payload)}`);
+    const cvsStoreId = payload.CVSStoreID || "";
+    const cvsStoreName = payload.CVSStoreName || "";
+    const cvsAddress = payload.CVSAddress || "";
+    const cvsSubType = payload.LogisticsSubType || "";
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>門市選擇成功</title>
+        <style>
+          body {
+            font-family: sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f9fafb;
+            color: #111827;
+          }
+          .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            text-align: center;
+          }
+          .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ea580c;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="spinner"></div>
+          <h3>門市選擇成功</h3>
+          <p>正在自動帶入資料並返回結帳頁面...</p>
+        </div>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({
+              type: "ECPAY_CVS_SELECT",
+              cvsStoreId: "${cvsStoreId}",
+              cvsStoreName: "${cvsStoreName}",
+              cvsStoreAddress: "${cvsAddress}",
+              cvsSubType: "${cvsSubType}"
+            }, "*");
+          }
+          setTimeout(() => {
+            window.close();
+          }, 500);
+        </script>
+      </body>
+      </html>
+    `;
+  }
 }

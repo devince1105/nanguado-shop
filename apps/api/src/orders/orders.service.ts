@@ -45,7 +45,12 @@ export type CreateOrderDto = {
   recipientName: string;
   recipientPhone: string;
   recipientEmail: string;
-  recipientAddress: string;
+  recipientAddress?: string;
+  shippingType?: "home" | "cvs";
+  cvsStoreId?: string;
+  cvsStoreName?: string;
+  cvsStoreAddress?: string;
+  cvsSubType?: string;
 };
 
 /** 產生綠界 MerchantTradeNo：NGD + 13 位時間戳 + 4 位隨機數（共 20 字元） */
@@ -64,15 +69,24 @@ export class OrdersService {
   ) {}
 
   async create(dto: CreateOrderDto) {
-    for (const field of [
-      "recipientName",
-      "recipientPhone",
-      "recipientEmail",
-      "recipientAddress",
-    ] as const) {
+    const shippingType = dto.shippingType || "home";
+    const requiredFields = ["recipientName", "recipientPhone", "recipientEmail"] as const;
+    for (const field of requiredFields) {
       if (!dto?.[field]) {
         throw new BadRequestException(`缺少必填欄位：${field}`);
       }
+    }
+
+    if (shippingType === "home") {
+      if (!dto?.recipientAddress) {
+        throw new BadRequestException("缺少必填欄位：recipientAddress");
+      }
+    } else if (shippingType === "cvs") {
+      if (!dto?.cvsStoreId || !dto?.cvsStoreName || !dto?.cvsStoreAddress) {
+        throw new BadRequestException("缺少超商門市資訊 (cvsStoreId, cvsStoreName, cvsStoreAddress)");
+      }
+    } else {
+      throw new BadRequestException(`不支援的配送方式：${shippingType}`);
     }
 
     const db = getDb();
@@ -152,7 +166,14 @@ export class OrdersService {
         recipientName: dto.recipientName,
         recipientPhone: dto.recipientPhone,
         recipientEmail: dto.recipientEmail,
-        recipientAddress: dto.recipientAddress,
+        recipientAddress: shippingType === "cvs"
+          ? `${dto.cvsStoreName} (${dto.cvsStoreId}) - ${dto.cvsStoreAddress}`
+          : dto.recipientAddress || "",
+        shippingType,
+        cvsStoreId: dto.cvsStoreId || null,
+        cvsStoreName: dto.cvsStoreName || null,
+        cvsStoreAddress: dto.cvsStoreAddress || null,
+        cvsSubType: dto.cvsSubType || null,
       })
       .returning();
 

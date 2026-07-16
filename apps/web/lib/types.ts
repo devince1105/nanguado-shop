@@ -82,6 +82,11 @@ export type Order = {
   recipientPhone: string;
   recipientEmail: string;
   recipientAddress: string;
+  shippingType?: "home" | "cvs";
+  cvsStoreId?: string | null;
+  cvsStoreName?: string | null;
+  cvsStoreAddress?: string | null;
+  cvsSubType?: string | null;
   isPaid: boolean;
   paymentType: string | null;
   paidAt: string | null;
