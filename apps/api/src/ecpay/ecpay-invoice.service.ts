@@ -95,12 +95,15 @@ export class EcpayInvoiceService {
         dataPayload.CarrierType = "2"; // 自然人憑證 (修正為 2)
         dataPayload.CarrierNum = order.carrierNum || "";
       } else {
-        dataPayload.CarrierType = ""; // 會員載具改為空字串，防止缺少 CustomerID 被綠界退件
+        // carrier 但未指定子類型 → 退回綠界載具（不印、寄 email）
+        dataPayload.CarrierType = "1";
       }
     } else {
+      // 個人雲端發票（預設）：綠界載具，不印紙本、寄 email 通知
+      // 注意：Print=0 時，載具/捐贈必須擇一，不可留空 CarrierType，否則綠界退件
       dataPayload.Print = "0";
       dataPayload.Donation = "0";
-      dataPayload.CarrierType = ""; // 個人雲端發票預設載具改為空字串，防止缺少 CustomerID
+      dataPayload.CarrierType = "1";
     }
 
     try {
