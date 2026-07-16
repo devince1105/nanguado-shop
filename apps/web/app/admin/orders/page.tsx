@@ -258,7 +258,34 @@ export default function AdminOrdersPage() {
                                 <p>姓名：{order.recipientName}</p>
                                 <p>電話：{order.recipientPhone}</p>
                                 <p>Email：{order.recipientEmail}</p>
-                                <p>地址：{order.recipientAddress}</p>
+                                {order.shippingType === "cvs" ? (
+                                  <div className="mt-2 rounded-lg border border-pumpkin-200 bg-pumpkin-50/20 p-3 max-w-sm">
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                      <span className="inline-flex items-center rounded-full bg-pumpkin-100 px-2.5 py-0.5 text-xs font-semibold text-pumpkin-800">
+                                        超商取貨 ({order.cvsSubType === "UNIMARTC2C" ? "7-11" : order.cvsSubType === "FAMIC2C" ? "全家" : "萊爾富"})
+                                      </span>
+                                    </div>
+                                    <p className="font-semibold text-neutral-800">門市名稱：{order.cvsStoreName}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold text-neutral-800">門市代號：{order.cvsStoreId}</p>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (order.cvsStoreId) {
+                                            navigator.clipboard.writeText(order.cvsStoreId);
+                                            showToast("已複製門市代號！", "success");
+                                          }
+                                        }}
+                                        className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 underline cursor-pointer"
+                                      >
+                                        複製
+                                      </button>
+                                    </div>
+                                    <p className="text-xs text-neutral-500 mt-1">門市地址：{order.cvsStoreAddress}</p>
+                                  </div>
+                                ) : (
+                                  <p>地址：{order.recipientAddress}</p>
+                                )}
                                 {order.paymentType && (
                                   <p className="text-neutral-400">
                                     付款方式：{order.paymentType}
