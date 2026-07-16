@@ -291,7 +291,14 @@ export default function CheckoutPage() {
                           type="radio"
                           name="cvsSubType"
                           checked={fields.cvsSubType === opt.id}
-                          onChange={() => setFields((prev) => ({ ...prev, cvsSubType: opt.id }))}
+                          onChange={() => setFields((prev) => ({
+                            ...prev,
+                            cvsSubType: opt.id,
+                            cvsStoreId: "",
+                            cvsStoreName: "",
+                            cvsStoreAddress: "",
+                            recipientAddress: "",
+                          }))}
                           className="accent-pumpkin-600 h-4 w-4"
                         />
                         {opt.label}
@@ -338,7 +345,14 @@ export default function CheckoutPage() {
                 type="radio"
                 name="shippingType"
                 checked={fields.shippingType === "home"}
-                onChange={() => setFields((prev) => ({ ...prev, shippingType: "home", recipientAddress: "" }))}
+                onChange={() => setFields((prev) => ({
+                  ...prev,
+                  shippingType: "home",
+                  recipientAddress: "",
+                  cvsStoreId: "",
+                  cvsStoreName: "",
+                  cvsStoreAddress: "",
+                }))}
                 className="accent-pumpkin-600 h-4 w-4"
               />
               <div>
@@ -352,7 +366,14 @@ export default function CheckoutPage() {
                 type="radio"
                 name="shippingType"
                 checked={fields.shippingType === "cvs"}
-                onChange={() => setFields((prev) => ({ ...prev, shippingType: "cvs", recipientAddress: "" }))}
+                onChange={() => setFields((prev) => ({
+                  ...prev,
+                  shippingType: "cvs",
+                  recipientAddress: "",
+                  cvsStoreId: "",
+                  cvsStoreName: "",
+                  cvsStoreAddress: "",
+                }))}
                 className="accent-pumpkin-600 h-4 w-4"
               />
               <div>
