@@ -1,22 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { API_URL, formatPrice } from "@/lib/api";
+import { useAuthStore } from "@/lib/store/auth";
 import type { Order } from "@/lib/types";
-
-type Props = {
-  params: Promise<{ id: string }>;
-};
-
-export const metadata = { title: "訂單完成" };
-
-async function getOrder(id: string): Promise<Order | null> {
-  const res = await fetch(`${API_URL}/api/v1/orders/${id}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "待付款",
@@ -26,10 +16,78 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "已取消",
 };
 
-export default async function OrderSuccessPage({ params }: Props) {
-  const { id } = await params;
-  const order = await getOrder(id);
-  if (!order) notFound();
+export default function OrderSuccessPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const token = useAuthStore((s) => s.token);
+  const initAuth = useAuthStore((s) => s.initAuth);
+
+  const [authChecked, setAuthChecked] = useState(false);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 先還原登入狀態（付款導回後 token 仍在 localStorage）
+  useEffect(() => {
+    initAuth().finally(() => setAuthChecked(true));
+  }, [initAuth]);
+
+  // 帶 token 查訂單；後端只回傳屬於本人的訂單
+  useEffect(() => {
+    if (!authChecked) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/orders/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (active && res.ok) setOrder(await res.json());
+      } catch {
+        // 略過；下方以 order === null 呈現
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [authChecked, token, id]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center text-sm text-neutral-500">
+        載入中…
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <p className="text-neutral-600">
+          找不到這筆訂單，或您沒有權限查看。
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            href="/member/orders"
+            className="rounded-full bg-pumpkin-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-pumpkin-700"
+          >
+            查看我的訂單
+          </Link>
+          <Link
+            href="/login?redirect=/member/orders"
+            className="rounded-full border border-neutral-200 px-6 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            登入
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">

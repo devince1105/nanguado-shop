@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import { OrdersService, type CreateOrderDto } from "./orders.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -20,9 +28,19 @@ export class OrdersController {
     return this.ordersService.getByUserId(user.userId);
   }
 
+  // 需登入，且只能查自己的訂單（防止靠 id 存取他人訂單/個資的 IDOR）
   @Get(":id")
-  getById(@Param("id") id: string) {
-    return this.ordersService.getById(id);
+  @UseGuards(AuthGuard)
+  async getById(
+    @Param("id") id: string,
+    @CurrentUser() user: { userId: string },
+  ) {
+    const order = await this.ordersService.getById(id);
+    if (order.userId !== user.userId) {
+      // 回 404 而非 403，避免洩漏訂單是否存在
+      throw new NotFoundException(`找不到訂單：${id}`);
+    }
+    return order;
   }
 
   @Post(":id/repay")

@@ -8,10 +8,20 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // 安全標頭（HSTS、X-Content-Type-Options、X-Frame-Options、隱藏 X-Powered-By…）。
+  // 本服務只回 JSON：關閉 CSP（不需要、避免誤擋），並允許前台跨網域讀取回應。
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
 
   // 信任 Render 反向代理 1 層，使 req.ip 正確取得真實客戶端 IP
   app.set("trust proxy", 1);
