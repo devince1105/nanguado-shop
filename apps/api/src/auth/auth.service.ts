@@ -7,7 +7,7 @@ import {
 import { getDb, users, verificationCodes } from "@repo/db";
 import { eq, and, gte, desc } from "drizzle-orm";
 import * as bcrypt from "bcryptjs";
-import { randomUUID } from "crypto";
+import { randomInt, randomUUID } from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { CartService } from "../cart/cart.service";
 import { MailService } from "../mail/mail.service";
@@ -109,7 +109,7 @@ export class AuthService {
     }
 
     // 產生 6 位數隨機驗證碼
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 分鐘過期
 
     // 寫入資料庫
@@ -156,7 +156,7 @@ export class AuthService {
 
     // 找不到會員也回成功（避免 email 列舉），但不寄信
     if (user) {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = randomInt(100000, 1000000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
       await db.insert(verificationCodes).values({
         email: cleanEmail,
