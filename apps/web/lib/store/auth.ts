@@ -98,10 +98,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (data) => {
     set({ loading: true });
     try {
+      const sessionId = getSessionId();
       const res = await fetch(`${API_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, sessionId }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {

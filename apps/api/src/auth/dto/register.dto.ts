@@ -25,4 +25,8 @@ export class RegisterDto {
   @IsString({ message: "地址必須為字串" })
   @IsOptional()
   address?: string;
+
+  @IsString({ message: "sessionId 必須為字串" })
+  @IsOptional()
+  sessionId?: string;
 }

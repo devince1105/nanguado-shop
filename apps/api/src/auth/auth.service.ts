@@ -21,7 +21,7 @@ export class AuthService {
   ) {}
 
   async register(dto: any) {
-    const { email, password, name, phone, address, code } = dto;
+    const { email, password, name, phone, address, code, sessionId } = dto;
     if (!email || !password || !name || !code) {
       throw new BadRequestException("請提供 Email、密碼、姓名與驗證碼");
     }
@@ -70,6 +70,15 @@ export class AuthService {
 
     // Generate token
     const token = this.generateToken(user.id, user.email, user.role);
+
+    // 合併購物車
+    if (sessionId) {
+      try {
+        await this.cartService.mergeCart(sessionId, user.id);
+      } catch (err) {
+        console.error("註冊後合併購物車失敗:", err);
+      }
+    }
 
     return {
       token,
