@@ -14,6 +14,12 @@
   --color-pumpkin-900: #7c2d12;
 }
 
+html {
+  /* 永遠保留垂直捲軸的空間：短頁面（無捲軸）與長頁面（有捲軸）寬度一致，
+     避免置中內容（mx-auto）在換頁時左右跳動、以及各頁左側留白不一致 */
+  scrollbar-gutter: stable;
+}
+
 body {
   @apply bg-white text-neutral-900 antialiased;
 }
