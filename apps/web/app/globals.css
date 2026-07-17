@@ -14,13 +14,7 @@
   --color-pumpkin-900: #7c2d12;
 }
 
-html {
-  /* 永遠「顯示」捲軸，而非「預留空位」：
-     - Windows 等經典捲軸：捲軸恆在 → 換頁不會左右跳（版面寬度一致）
-     - Mac/手機 懸浮式捲軸：不佔版面 → 不會出現右側空白長條
-     專業網站常用的作法，比 scrollbar-gutter 更不會在 overlay 系統露出空槽。 */
-  overflow-y: scroll;
-}
+
 
 body {
   @apply bg-white text-neutral-900 antialiased;
