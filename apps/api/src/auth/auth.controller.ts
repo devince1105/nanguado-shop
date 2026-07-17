@@ -6,37 +6,53 @@ import {
   Patch,
   UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
 import { CurrentUser } from "./current-user.decorator";
+import { RegisterDto } from "./dto/register.dto";
+import { LoginDto } from "./dto/login.dto";
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  ChangePasswordDto,
+  SendVerificationDto,
+  UpdateProfileDto,
+  GoogleLoginDto,
+} from "./dto/auth-others.dto";
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("register")
-  register(@Body() body: any) {
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  register(@Body() body: RegisterDto) {
     return this.authService.register(body);
   }
 
   @Post("login")
-  login(@Body() body: any) {
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  login(@Body() body: LoginDto) {
     return this.authService.login(body);
   }
 
   @Post("google")
-  googleLogin(@Body() body: { credential?: string; sessionId?: string }) {
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  googleLogin(@Body() body: GoogleLoginDto) {
     return this.authService.googleLogin(body);
   }
 
   @Post("forgot-password")
-  forgotPassword(@Body() body: { email: string }) {
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  forgotPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.sendPasswordResetCode(body.email);
   }
 
   @Post("reset-password")
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   resetPassword(
-    @Body() body: { email?: string; code?: string; newPassword?: string },
+    @Body() body: ResetPasswordDto,
   ) {
     return this.authService.resetPassword(body);
   }
@@ -49,23 +65,25 @@ export class AuthController {
 
   @Post("change-password")
   @UseGuards(AuthGuard)
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   changePassword(
     @CurrentUser() user: { userId: string },
-    @Body() body: any,
+    @Body() body: ChangePasswordDto,
   ) {
     return this.authService.changePassword(user.userId, body);
   }
 
   @Post("send-verification")
-  sendVerification(@Body() body: { email: string }) {
-    return this.authService.sendVerificationCode(body?.email);
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  sendVerification(@Body() body: SendVerificationDto) {
+    return this.authService.sendVerificationCode(body.email);
   }
 
   @Patch("profile")
   @UseGuards(AuthGuard)
   updateProfile(
     @CurrentUser() user: { userId: string },
-    @Body() body: any,
+    @Body() body: UpdateProfileDto,
   ) {
     return this.authService.updateProfile(user.userId, body);
   }

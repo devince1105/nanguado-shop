@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { ProductsModule } from "./products/products.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { CartModule } from "./cart/cart.module";
@@ -15,6 +17,21 @@ import { MailModule } from "./mail/mail.module";
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: "default",
+          ttl: 60000,
+          limit: 60,
+        },
+        {
+          name: "auth",
+          ttl: 60000,
+          limit: 5,
+        },
+      ],
+      errorMessage: "嘗試次數過多，請稍後再試",
+    }),
     ProductsModule,
     CategoriesModule,
     CartModule,
@@ -28,6 +45,12 @@ import { MailModule } from "./mail/mail.module";
     SettingsModule,
     BannersModule,
     MailModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

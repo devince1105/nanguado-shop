@@ -10,6 +10,16 @@
       ],
       "port": 3000,
       "autoPort": false
+    },
+    {
+      "name": "nanguado-api",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=/Users/vincelo/.nvm/versions/node/v22.22.0/bin:$PATH && pnpm --filter @repo/api dev"
+      ],
+      "port": 4000,
+      "autoPort": false
     }
   ]
 }

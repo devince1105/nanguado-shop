@@ -1,10 +1,12 @@
 import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import { getDb, orders, products, type Order, type OrderItem } from "@repo/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
 import { EcpayInvoiceService } from "./ecpay-invoice.service";
 import { MailService } from "../mail/mail.service";
 
+@SkipThrottle()
 @Controller("ecpay")
 export class EcpayController {
   private readonly logger = new Logger(EcpayController.name);
