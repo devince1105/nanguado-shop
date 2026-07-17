@@ -100,6 +100,10 @@ export type Order = {
   invoiceNo?: string | null;
   invoiceStatus: "unissued" | "issued" | "voided" | "failed";
   invoiceRtnCode?: number | null;
+  logisticsId?: string | null;
+  logisticsNo?: string | null;
+  logisticsValidationNo?: string | null;
+  logisticsStatus?: string | null;
   items: OrderItem[];
   subtotal: number;
   shippingFee: number;

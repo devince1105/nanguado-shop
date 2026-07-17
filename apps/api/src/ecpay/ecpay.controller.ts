@@ -4,6 +4,7 @@ import { getDb, orders, products, type Order, type OrderItem } from "@repo/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
 import { EcpayInvoiceService } from "./ecpay-invoice.service";
+import { EcpayLogisticsService } from "./ecpay-logistics.service";
 import { MailService } from "../mail/mail.service";
 
 @SkipThrottle()
@@ -15,6 +16,7 @@ export class EcpayController {
     private readonly paymentService: EcpayPaymentService,
     private readonly invoiceService: EcpayInvoiceService,
     private readonly mailService: MailService,
+    private readonly logisticsService: EcpayLogisticsService,
   ) {}
 
   /**
@@ -100,6 +102,28 @@ export class EcpayController {
     this.issueInvoice(orderRecord.id).catch((err) =>
       this.logger.error("發票處理與信件發送失敗", err),
     );
+
+    // 如果是超商取貨（且非貨到付款，例如信用卡已付款），在此時於背景向綠界物流註冊託運單 (isCollection = N)
+    if (orderRecord.shippingType === "cvs" && orderRecord.paymentType !== "CVS_COD") {
+      this.logisticsService
+        .createLogisticsOrder(orderRecord, orderRecord.items, "N")
+        .then(async (logisticsInfo) => {
+          await db
+            .update(orders)
+            .set({
+              logisticsId: logisticsInfo.logisticsId,
+              logisticsNo: logisticsInfo.logisticsNo,
+              logisticsValidationNo: logisticsInfo.logisticsValidationNo || null,
+              logisticsStatus: "0",
+              updatedAt: new Date(),
+            })
+            .where(eq(orders.id, orderRecord.id));
+          this.logger.log(`✅ 已完成超商取貨（已付款）背景物流建單：${logisticsInfo.logisticsNo}`);
+        })
+        .catch((err) => {
+          this.logger.error(`❌ 超商取貨（已付款）背景物流建單失敗：${err.message}`);
+        });
+    }
 
     return "1|OK";
   }
@@ -339,5 +363,89 @@ export class EcpayController {
     } catch (err) {
       this.logger.error(`[Invoice] 異步發票發送發生例外`, err as Error);
     }
+  }
+
+  /**
+   * 綠界超商物流狀態回傳 Webhook（POST /api/v1/ecpay/logistics-status）。
+   * 綠界物流狀態變更時，會向此端點發送通知。
+   */
+  @Post("logistics-status")
+  @Header("Content-Type", "text/plain")
+  async logisticsStatus(@Body() payload: Record<string, string>): Promise<string> {
+    this.logger.log(`📡 收到綠界物流狀態 Webhook：${JSON.stringify(payload)}`);
+
+    if (!payload?.CheckMacValue) {
+      this.logger.error("物流 Webhook 缺少 CheckMacValue");
+      return "0|Missing_CheckMacValue";
+    }
+
+    if (!this.logisticsService.verifyCallback(payload)) {
+      this.logger.error("物流 CheckMacValue 驗證失敗");
+      return "0|CheckMacValue_Error";
+    }
+
+    const merchantTradeNo = payload.MerchantTradeNo;
+    if (!merchantTradeNo) {
+      return "0|Missing_MerchantTradeNo";
+    }
+
+    const db = getDb();
+    const orderRecord = await db.query.orders.findFirst({
+      where: eq(orders.merchantTradeNo, merchantTradeNo),
+      with: { items: true },
+    });
+
+    if (!orderRecord) {
+      this.logger.warn(`物流通知：找不到對應的訂單 ${merchantTradeNo}`);
+      return "1|OK";
+    }
+
+    const rtnCode = payload.RtnCode;
+    const rtnMsg = payload.RtnMsg || "";
+    
+    await db
+      .update(orders)
+      .set({
+        logisticsStatus: `${rtnCode}:${rtnMsg}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, orderRecord.id));
+
+    // 判斷是否為買家已取件付款成功
+    // 正確狀態碼（依綠界文件）：2067 = 7-11 消費者成功取件、3022 = 全家/萊爾富消費者成功取件
+    const isPickupSuccess = ["2067", "3022"].includes(rtnCode);
+
+    if (isPickupSuccess && orderRecord.paymentType === "CVS_COD") {
+      // #5 修正：使用原子 UPDATE WHERE isPaid=false 確保冪等，防止重送重複開發票
+      const transitioned = await db
+        .update(orders)
+        .set({
+          isPaid: true,
+          status: "completed",
+          paidAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(orders.id, orderRecord.id),
+            eq(orders.isPaid, false),
+          ),
+        )
+        .returning({ id: orders.id });
+
+      if (transitioned.length === 0) {
+        this.logger.log(`ℹ️ COD 訂單 ${merchantTradeNo} 已標記為已付款，略過重複處理`);
+        return "1|OK";
+      }
+
+      this.logger.log(`💰 超商貨到付款訂單 ${merchantTradeNo} 買家已取貨付款！觸發發票開立...`);
+
+      // 觸發電子發票開立（貨到付款是在取貨付款完成後才開立發票）
+      this.issueInvoice(orderRecord.id).catch((err) =>
+        this.logger.error("貨到付款取貨開立發票失敗", err),
+      );
+    }
+
+    return "1|OK";
   }
 }

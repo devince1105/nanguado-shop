@@ -44,6 +44,7 @@ type FormFields = {
   companyTaxId: string;
   companyTitle: string;
   donationCode: string;
+  paymentMethod: "credit_card" | "cvs_cod";
 };
 
 /** 將綠界付款表單以隱藏 form POST 到綠界收銀台 */
@@ -55,7 +56,7 @@ function submitEcpayForm(payment: EcpayPayment) {
     const input = document.createElement("input");
     input.type = "hidden";
     input.name = name;
-    input.value = value;
+    input.value = String(value);
     form.appendChild(input);
   }
   document.body.appendChild(form);
@@ -90,6 +91,7 @@ export default function CheckoutPage() {
     companyTaxId: "",
     companyTitle: "",
     donationCode: "",
+    paymentMethod: "credit_card",
   });
   const [submitting, setSubmitting] = useState(false);
   const redirectingRef = useRef(false);
@@ -153,7 +155,7 @@ export default function CheckoutPage() {
       MerchantID: "2000933",
       LogisticsType: "CVS",
       LogisticsSubType: subType,
-      IsCollection: "N",
+      IsCollection: fields.paymentMethod === "cvs_cod" ? "Y" : "N",
       ServerReplyURL: `${API_URL}/api/v1/ecpay/logistics-map-callback`,
       ExtraData: "",
     };
@@ -264,6 +266,13 @@ export default function CheckoutPage() {
         throw new Error(body?.message ?? `建立訂單失敗（${res.status}）`);
       }
       const order = body as Order;
+      if (fields.paymentMethod === "cvs_cod") {
+        redirectingRef.current = true;
+        clearCart();
+        showToast("訂單已建立，超商貨到付款登記成功！", "success");
+        router.push(`/orders/${order.id}/success`);
+        return;
+      }
       if (!order.payment) {
         throw new Error("訂單建立成功，但缺少付款資訊");
       }
@@ -434,6 +443,7 @@ export default function CheckoutPage() {
                   cvsStoreId: "",
                   cvsStoreName: "",
                   cvsStoreAddress: "",
+                  paymentMethod: "credit_card",
                 }))}
                 className="accent-pumpkin-600 h-4 w-4"
               />
@@ -466,15 +476,41 @@ export default function CheckoutPage() {
           </div>
 
           <h2 className="mt-8 text-base font-bold text-neutral-900">付款方式</h2>
-          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-pumpkin-600 bg-pumpkin-50 px-4 py-3.5">
-            <input type="radio" checked readOnly className="accent-pumpkin-600" />
-            <div>
-              <p className="text-sm font-bold text-neutral-900">信用卡</p>
-              <p className="text-xs text-neutral-500">
-                由綠界科技（ECPay）提供安全加密付款
-              </p>
-            </div>
-          </label>
+          <div className="mt-4 space-y-3">
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-all ${fields.paymentMethod === "credit_card" ? "border-pumpkin-600 bg-pumpkin-50/50 ring-2 ring-pumpkin-600/10" : "border-neutral-200 bg-white hover:border-neutral-300"}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={fields.paymentMethod === "credit_card"}
+                onChange={() => setFields((prev) => ({ ...prev, paymentMethod: "credit_card" }))}
+                className="accent-pumpkin-600 h-4 w-4"
+              />
+              <div>
+                <p className="text-sm font-bold text-neutral-900">信用卡</p>
+                <p className="text-xs text-neutral-500">
+                  由綠界科技（ECPay）提供安全加密付款
+                </p>
+              </div>
+            </label>
+
+            {fields.shippingType === "cvs" && (
+              <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-all ${fields.paymentMethod === "cvs_cod" ? "border-pumpkin-600 bg-pumpkin-50/50 ring-2 ring-pumpkin-600/10" : "border-neutral-200 bg-white hover:border-neutral-300"}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  checked={fields.paymentMethod === "cvs_cod"}
+                  onChange={() => setFields((prev) => ({ ...prev, paymentMethod: "cvs_cod" }))}
+                  className="accent-pumpkin-600 h-4 w-4"
+                />
+                <div>
+                  <p className="text-sm font-bold text-neutral-900">超商貨到付款</p>
+                  <p className="text-xs text-neutral-500">
+                    包裹送達超商門市時，於櫃檯取貨付款
+                  </p>
+                </div>
+              </label>
+            )}
+          </div>
 
           <h2 className="mt-8 text-base font-bold text-neutral-900">發票資訊</h2>
           <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 space-y-4 shadow-sm">

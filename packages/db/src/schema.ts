@@ -138,6 +138,11 @@ export const orders = pgTable("orders", {
   invoiceRtnCode: integer("invoice_rtn_code"),
   /** 綠界回傳的付款方式，例如 Credit_CreditCard */
   paymentType: varchar("payment_type", { length: 50 }),
+  logisticsId: varchar("logistics_id", { length: 50 }),
+  logisticsNo: varchar("logistics_no", { length: 50 }),
+  /** 7-ELEVEN 出貨必須掃描的驗證碼（CVSValidationNo） */
+  logisticsValidationNo: varchar("logistics_validation_no", { length: 50 }),
+  logisticsStatus: varchar("logistics_status", { length: 50 }),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

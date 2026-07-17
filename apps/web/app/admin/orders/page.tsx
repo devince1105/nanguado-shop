@@ -282,6 +282,51 @@ export default function AdminOrdersPage() {
                                       </button>
                                     </div>
                                     <p className="text-xs text-neutral-500 mt-1">門市地址：{order.cvsStoreAddress}</p>
+                                    {order.logisticsNo && (
+                                      <div className="mt-2.5 pt-2 border-t border-pumpkin-200/30 space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-semibold text-neutral-800">
+                                            寄件編號：<span className="font-mono text-pumpkin-700 font-bold">{order.logisticsNo}</span>
+                                          </p>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (order.logisticsNo) {
+                                                navigator.clipboard.writeText(order.logisticsNo);
+                                                showToast("已複製寄件編號！", "success");
+                                              }
+                                            }}
+                                            className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 underline cursor-pointer"
+                                          >
+                                            複製
+                                          </button>
+                                        </div>
+                                        {order.logisticsStatus && (
+                                          <p className="text-xs text-neutral-500 font-medium">
+                                            物流狀態：{order.logisticsStatus}
+                                          </p>
+                                        )}
+                                        {order.logisticsValidationNo && (
+                                          <div className="flex items-center gap-2">
+                                            <p className="text-xs font-semibold text-amber-700">
+                                              7-11 驗證碼：<span className="font-mono font-bold">{order.logisticsValidationNo}</span>
+                                            </p>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (order.logisticsValidationNo) {
+                                                  navigator.clipboard.writeText(order.logisticsValidationNo);
+                                                  showToast("已複製驗證碼！", "success");
+                                                }
+                                              }}
+                                              className="text-xs font-bold text-pumpkin-600 hover:text-pumpkin-700 underline cursor-pointer"
+                                            >
+                                              複製
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <p>地址：{order.recipientAddress}</p>

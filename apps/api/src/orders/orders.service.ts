@@ -10,7 +10,7 @@ import {
   products,
   type SelectedVariant,
 } from "@repo/db";
-import { and, count, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { CartService } from "../cart/cart.service";
 import { EcpayPaymentService } from "../ecpay/ecpay-payment.service";
 import { EcpayInvoiceService } from "../ecpay/ecpay-invoice.service";
@@ -58,6 +58,7 @@ export type CreateOrderDto = {
   companyTaxId?: string;
   companyTitle?: string;
   donationCode?: string;
+  paymentMethod?: "credit_card" | "cvs_cod";
 };
 
 /** 產生綠界 MerchantTradeNo：NGD + 13 位時間戳 + 4 位隨機數（共 20 字元） */
@@ -84,12 +85,15 @@ export function validateTaxId(taxId: string): boolean {
   return false;
 }
 
+import { EcpayLogisticsService } from "../ecpay/ecpay-logistics.service";
+
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly cartService: CartService,
     private readonly ecpayPaymentService: EcpayPaymentService,
     private readonly ecpayInvoiceService: EcpayInvoiceService,
+    private readonly ecpayLogisticsService: EcpayLogisticsService,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -124,6 +128,11 @@ export class OrdersService {
       if (!dto.donationCode || !/^\d{3,7}$/.test(dto.donationCode)) {
         throw new BadRequestException("愛心碼格式錯誤，應為 3 至 7 碼數字");
       }
+    }
+
+    // 超商貨到付款僅限超商取貨（在建立訂單前先擋，避免產生孤兒訂單）
+    if (dto.paymentMethod === "cvs_cod" && shippingType !== "cvs") {
+      throw new BadRequestException("超商貨到付款僅限超商取貨使用");
     }
 
     if (shippingType === "home") {
@@ -223,6 +232,7 @@ export class OrdersService {
         cvsStoreName: dto.cvsStoreName || null,
         cvsStoreAddress: dto.cvsStoreAddress || null,
         cvsSubType: dto.cvsSubType || null,
+        paymentType: dto.paymentMethod === "cvs_cod" ? "CVS_COD" : null,
         // 發票欄位
         invoiceType,
         carrierType: dto.carrierType || null,
@@ -249,20 +259,112 @@ export class OrdersService {
       }),
     );
 
-    // 從購物車下單成功後清空購物車
-    if (!dto.items?.length && (dto.userId || dto.sessionId)) {
+    const created = await this.getById(order.id);
+    const fromCart = !dto.items?.length && (dto.userId || dto.sessionId);
+
+    // 超商貨到付款 (CVS COD)：先向綠界物流建單，成功後才扣庫存並清空購物車
+    if (dto.paymentMethod === "cvs_cod") {
+      let logisticsInfo;
+      try {
+        logisticsInfo = await this.ecpayLogisticsService.createLogisticsOrder(
+          created,
+          created.items,
+          "Y", // isCollection = Y (貨到付款代收)
+        );
+      } catch (err) {
+        // 物流建單失敗 → 回滾剛建立的訂單與明細，購物車保留讓使用者可重試
+        await db.delete(orderItems).where(eq(orderItems.orderId, order.id));
+        await db.delete(orders).where(eq(orders.id, order.id));
+        throw err;
+      }
+
+      // 建單成功後才原子扣庫存（COD 下單即承諾出貨）
+      for (const item of created.items) {
+        await this.decrementStock(
+          item.productId,
+          item.quantity,
+          item.selectedVariant as Record<string, string> | null,
+        );
+      }
+
+      await db
+        .update(orders)
+        .set({
+          logisticsId: logisticsInfo.logisticsId,
+          logisticsNo: logisticsInfo.logisticsNo,
+          logisticsValidationNo: logisticsInfo.logisticsValidationNo || null,
+          logisticsStatus: "0", // 綠界超商物流初始狀態：訂單建立
+          updatedAt: new Date(),
+        })
+        .where(eq(orders.id, order.id));
+
+      // 全部成功後才清空購物車
+      if (fromCart) {
+        await this.cartService.clearCart(dto.sessionId || "", dto.userId);
+      }
+
+      const updated = await this.getById(order.id);
+      return { ...updated, payment: null };
+    }
+
+    // 信用卡：建單後清空購物車，再導向綠界收銀台
+    if (fromCart) {
       await this.cartService.clearCart(dto.sessionId || "", dto.userId);
     }
 
-    const created = await this.getById(order.id);
-
-    // 產生綠界付款表單，前端以隱藏 form submit 到綠界收銀台
     const payment = this.ecpayPaymentService.buildCheckoutForm(
       created,
       created.items,
     );
 
     return { ...created, payment };
+  }
+
+  /** 原子扣減庫存，與 EcpayController 中的版本邏輯相同 */
+  private async decrementStock(
+    productId: string,
+    quantity: number,
+    selectedVariant: Record<string, string> | null,
+  ) {
+    const db = getDb();
+    const product = await db.query.products.findFirst({
+      where: eq(products.id, productId),
+    });
+    if (!product) return;
+
+    const hasVariantStock =
+      product.variantStock && Object.keys(product.variantStock).length > 0;
+
+    if (hasVariantStock && product.variants && product.variants.length > 0 && selectedVariant) {
+      const key = product.variants
+        .map((v) => selectedVariant[v.name] || "")
+        .join(" / ");
+      await db
+        .update(products)
+        .set({
+          variantStock: sql`jsonb_set(
+            ${products.variantStock},
+            ARRAY[${key}],
+            to_jsonb(GREATEST((${products.variantStock} ->> ${key})::int - ${quantity}, 0))
+          )`,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId));
+      await db
+        .update(products)
+        .set({
+          stock: sql`(SELECT COALESCE(SUM(value::int), 0) FROM jsonb_each_text(${products.variantStock}))`,
+        })
+        .where(eq(products.id, productId));
+    } else {
+      await db
+        .update(products)
+        .set({
+          stock: sql`GREATEST(${products.stock} - ${quantity}, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId));
+    }
   }
 
   async getById(id: string) {
