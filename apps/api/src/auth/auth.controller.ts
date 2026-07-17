@@ -26,31 +26,31 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("register")
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   register(@Body() body: RegisterDto) {
     return this.authService.register(body);
   }
 
   @Post("login")
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   login(@Body() body: LoginDto) {
     return this.authService.login(body);
   }
 
   @Post("google")
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   googleLogin(@Body() body: GoogleLoginDto) {
     return this.authService.googleLogin(body);
   }
 
   @Post("forgot-password")
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   forgotPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.sendPasswordResetCode(body.email);
   }
 
   @Post("reset-password")
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   resetPassword(
     @Body() body: ResetPasswordDto,
   ) {
@@ -65,7 +65,7 @@ export class AuthController {
 
   @Post("change-password")
   @UseGuards(AuthGuard)
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   changePassword(
     @CurrentUser() user: { userId: string },
     @Body() body: ChangePasswordDto,
@@ -74,7 +74,7 @@ export class AuthController {
   }
 
   @Post("send-verification")
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   sendVerification(@Body() body: SendVerificationDto) {
     return this.authService.sendVerificationCode(body.email);
   }

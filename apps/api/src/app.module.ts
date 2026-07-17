@@ -24,11 +24,6 @@ import { MailModule } from "./mail/mail.module";
           ttl: 60000,
           limit: 60,
         },
-        {
-          name: "auth",
-          ttl: 60000,
-          limit: 5,
-        },
       ],
       errorMessage: "嘗試次數過多，請稍後再試",
     }),
