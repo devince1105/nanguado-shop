@@ -10,9 +10,6 @@ import { useUiStore } from "@/lib/store/ui";
 const NAV_LINKS = [
   { href: "/", label: "首頁" },
   { href: "/products", label: "全部商品" },
-  { href: "/categories/t-shirt", label: "T恤類" },
-  { href: "/categories/hats-accessories", label: "帽子配件" },
-  { href: "/categories/cultural-goods", label: "文創小物" },
 ];
 
 export function Header({

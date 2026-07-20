@@ -42,27 +42,11 @@ export function Footer({
           </ul>
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-neutral-900">購物分類</h3>
+          <h3 className="text-sm font-semibold text-neutral-900">商品導覽</h3>
           <ul className="mt-3 space-y-2 text-sm text-neutral-500">
             <li>
-              <Link href="/categories/t-shirt" className="hover:text-pumpkin-600">
-                T恤類
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/categories/hats-accessories"
-                className="hover:text-pumpkin-600"
-              >
-                帽子配件
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/categories/cultural-goods"
-                className="hover:text-pumpkin-600"
-              >
-                文創小物
+              <Link href="/products" className="hover:text-pumpkin-600 font-medium">
+                逛逛全部商品 →
               </Link>
             </li>
           </ul>
