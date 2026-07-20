@@ -37,14 +37,28 @@ export type ProductQuery = {
   limit?: number;
 };
 
-export function getProducts(query: ProductQuery = {}) {
-  const params = new URLSearchParams();
-  if (query.category) params.set("category", query.category);
-  if (query.sort) params.set("sort", query.sort);
-  if (query.page) params.set("page", String(query.page));
-  if (query.limit) params.set("limit", String(query.limit));
-  const qs = params.toString();
-  return apiFetch<ProductListResponse>(`/products${qs ? `?${qs}` : ""}`);
+export async function getProducts(
+  query: ProductQuery = {},
+): Promise<ProductListResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (query.category) params.set("category", query.category);
+    if (query.sort) params.set("sort", query.sort);
+    if (query.page) params.set("page", String(query.page));
+    if (query.limit) params.set("limit", String(query.limit));
+    const qs = params.toString();
+    return await apiFetch<ProductListResponse>(`/products${qs ? `?${qs}` : ""}`);
+  } catch {
+    return {
+      items: [],
+      pagination: {
+        page: 1,
+        limit: query.limit || 12,
+        total: 0,
+        totalPages: 0,
+      },
+    };
+  }
 }
 
 export function getProduct(slug: string) {
