@@ -195,6 +195,12 @@ export function updateUserRole(token: string, userId: string, role: string) {
   );
 }
 
+export function deleteAdminUser(token: string, userId: string) {
+  return adminFetch<{ success: boolean }>(`/users/${userId}`, token, {
+    method: "DELETE",
+  });
+}
+
 // ---------- 統計數據 ----------
 
 export function getAdminStats(token: string) {

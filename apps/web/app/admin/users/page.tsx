@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import {
+  deleteAdminUser,
   getAdminUserOrders,
   getAdminUsers,
   updateUserRole,
@@ -90,6 +91,24 @@ export default function AdminUsersPage() {
       showToast(nextRole === "admin" ? "已升級為管理員" : "已降為一般會員");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "操作失敗", "error");
+    }
+  }
+
+  async function handleDeleteUser(user: AdminUser) {
+    if (!token) return;
+    const nameStr = user.name ?? user.email;
+    if (
+      !window.confirm(
+        `確定要刪除會員「${nameStr}」嗎？\n刪除後帳號無法復原，該會員的購物車與評價將一併刪除。`,
+      )
+    )
+      return;
+    try {
+      await deleteAdminUser(token, user.id);
+      showToast(`已刪除會員「${nameStr}」`, "success");
+      await reload();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "刪除失敗", "error");
     }
   }
 
@@ -202,15 +221,26 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {me?.id !== user.id && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRoleToggle(user);
-                          }}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-                        >
-                          {user.role === "admin" ? "降為會員" : "升為管理員"}
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRoleToggle(user);
+                            }}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+                          >
+                            {user.role === "admin" ? "降為會員" : "升為管理員"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteUser(user);
+                            }}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                          >
+                            刪除
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -41,5 +42,13 @@ export class AdminUsersController {
     @CurrentUser() operator: { userId: string },
   ) {
     return this.adminUsersService.updateRole(id, body?.role, operator.userId);
+  }
+
+  @Delete(":id")
+  remove(
+    @Param("id") id: string,
+    @CurrentUser() operator: { userId: string },
+  ) {
+    return this.adminUsersService.remove(id, operator.userId);
   }
 }

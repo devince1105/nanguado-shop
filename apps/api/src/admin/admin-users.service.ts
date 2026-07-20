@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { getDb, users, orders } from "@repo/db";
+import { getDb, users, orders, carts, reviews } from "@repo/db";
 import { and, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 
 export type AdminUserQuery = {
@@ -127,5 +127,33 @@ export class AdminUsersService {
         role: users.role,
       });
     return updated;
+  }
+
+  /** 刪除會員：解除訂單綁定 (以保留歷史銷售紀錄)，刪除購物車與評價後移除會員 */
+  async remove(targetUserId: string, operatorUserId: string) {
+    if (targetUserId === operatorUserId) {
+      throw new BadRequestException("不可刪除自己的帳號");
+    }
+    const db = getDb();
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, targetUserId),
+    });
+    if (!target) {
+      throw new NotFoundException(`找不到會員：${targetUserId}`);
+    }
+
+    // 1. 將訂單中的 userId 解除綁定 (設為 null)，以保留商店營收與歷史銷售明細
+    await db
+      .update(orders)
+      .set({ userId: null })
+      .where(eq(orders.userId, targetUserId));
+
+    // 2. 清除該會員的購物車與評價
+    await db.delete(reviews).where(eq(reviews.userId, targetUserId));
+    await db.delete(carts).where(eq(carts.userId, targetUserId));
+
+    // 3. 刪除會員帳號
+    await db.delete(users).where(eq(users.id, targetUserId));
+    return { success: true };
   }
 }
