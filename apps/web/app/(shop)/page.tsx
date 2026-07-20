@@ -20,7 +20,7 @@ async function FeaturedProducts() {
 async function CategoryCards() {
   const categories = await getCategories();
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {categories.map((category) => (
         <Link
           key={category.id}
@@ -90,8 +90,8 @@ export default async function HomePage() {
         <h2 className="mb-6 text-xl font-bold text-neutral-900">購物分類</h2>
         <Suspense
           fallback={
-            <div className="grid gap-4 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
                   className="aspect-[4/3] animate-pulse rounded-2xl bg-neutral-100"
