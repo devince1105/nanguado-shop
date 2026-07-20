@@ -51,8 +51,12 @@ export function getProduct(slug: string) {
   return apiFetch<Product>(`/products/${slug}`);
 }
 
-export function getCategories() {
-  return apiFetch<Category[]>("/categories");
+export async function getCategories(): Promise<Category[]> {
+  try {
+    return await apiFetch<Category[]>("/categories");
+  } catch {
+    return [];
+  }
 }
 
 export function getPage(slug: string) {

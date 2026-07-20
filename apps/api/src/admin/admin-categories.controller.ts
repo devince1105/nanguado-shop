@@ -21,7 +21,7 @@ export class AdminCategoriesController {
 
   @Get()
   list() {
-    return this.categoriesService.list();
+    return this.categoriesService.list(true);
   }
 
   @Post()

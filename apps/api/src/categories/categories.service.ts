@@ -11,27 +11,39 @@ export type CategoryDto = {
   slug: string;
   description?: string | null;
   imageUrl?: string | null;
+  icon?: string | null;
+  bgColor?: string | null;
+  isActive?: boolean;
   sortOrder?: number;
 };
 
 @Injectable()
 export class CategoriesService {
-  /** 回傳所有分類（含各分類商品數量），依 sortOrder 排序 */
-  async list() {
+  /** 回傳分類（含各分類商品數量），預設僅前台顯示之分類（isActive = true），依 sortOrder 排序 */
+  async list(includeInactive = false) {
     const db = getDb();
-    const rows = await db
+    let query = db
       .select({
         id: categories.id,
         name: categories.name,
         slug: categories.slug,
         description: categories.description,
         imageUrl: categories.imageUrl,
+        icon: categories.icon,
+        bgColor: categories.bgColor,
+        isActive: categories.isActive,
         sortOrder: categories.sortOrder,
         createdAt: categories.createdAt,
         productCount: count(products.id),
       })
       .from(categories)
-      .leftJoin(products, eq(products.categoryId, categories.id))
+      .leftJoin(products, eq(products.categoryId, categories.id));
+
+    if (!includeInactive) {
+      query = query.where(eq(categories.isActive, true)) as typeof query;
+    }
+
+    const rows = await query
       .groupBy(categories.id)
       .orderBy(asc(categories.sortOrder));
     return rows;
@@ -57,6 +69,9 @@ export class CategoriesService {
         slug: dto.slug,
         description: dto.description ?? null,
         imageUrl: dto.imageUrl ?? null,
+        icon: dto.icon ?? null,
+        bgColor: dto.bgColor ?? null,
+        isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
       })
       .returning();
@@ -88,6 +103,9 @@ export class CategoriesService {
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
+        ...(dto.icon !== undefined && { icon: dto.icon }),
+        ...(dto.bgColor !== undefined && { bgColor: dto.bgColor }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
       })
       .where(eq(categories.id, id))

@@ -11,6 +11,9 @@ export type Category = {
   slug: string;
   description: string | null;
   imageUrl: string | null;
+  icon: string | null;
+  bgColor: string | null;
+  isActive: boolean;
   sortOrder: number;
   createdAt: string;
   productCount: number;

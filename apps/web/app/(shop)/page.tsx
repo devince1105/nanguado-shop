@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getBanners, getCategories, getProducts } from "@/lib/api";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ProductGridSkeleton } from "@/components/products/ProductGridSkeleton";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
+import { getCategoryIcon, PRESET_BG_COLORS } from "@/lib/icons";
 
 async function FeaturedProducts() {
   const data = await getProducts({ limit: 8 });
@@ -20,31 +20,39 @@ async function FeaturedProducts() {
 async function CategoryCards() {
   const categories = await getCategories();
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      {categories.map((category) => (
-        <Link
-          key={category.id}
-          href={`/categories/${category.slug}`}
-          className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-neutral-100"
-        >
-          {category.imageUrl && (
-            <Image
-              src={category.imageUrl}
-              alt={category.name}
-              fill
-              sizes="(max-width: 640px) 100vw, 33vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-          <div className="absolute bottom-4 left-4 text-white">
-            <h3 className="text-lg font-bold">{category.name}</h3>
-            <p className="text-sm text-white/80">
-              {category.productCount} 件商品
-            </p>
-          </div>
-        </Link>
-      ))}
+    <div className="grid grid-cols-3 gap-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+      {categories.map((category) => {
+        const Icon = getCategoryIcon(category.icon, category.name);
+        const isClass = category.bgColor?.startsWith("bg-");
+        const presetHex = isClass
+          ? PRESET_BG_COLORS.find((p) => p.id === category.bgColor)?.hex
+          : null;
+        return (
+          <Link
+            key={category.id}
+            href={`/categories/${category.slug}`}
+            className="group flex flex-col items-center gap-2 rounded-xl px-1 py-3 text-center transition-colors hover:bg-pumpkin-50"
+          >
+            <span
+              className={`flex h-14 w-14 items-center justify-center rounded-full text-neutral-600 shadow-sm transition-colors group-hover:scale-105 ${
+                isClass ? category.bgColor : ""
+              }`}
+              style={{
+                backgroundColor:
+                  !category.bgColor || isClass
+                    ? presetHex || undefined
+                    : category.bgColor,
+                ...(!category.bgColor && { backgroundColor: "#f5f5f5" }),
+              }}
+            >
+              <Icon className="h-6 w-6" strokeWidth={1.75} />
+            </span>
+            <span className="text-xs text-neutral-700 sm:text-sm">
+              {category.name}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -90,12 +98,15 @@ export default async function HomePage() {
         <h2 className="mb-6 text-xl font-bold text-neutral-900">購物分類</h2>
         <Suspense
           fallback={
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
+            <div className="grid grid-cols-3 gap-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-[4/3] animate-pulse rounded-2xl bg-neutral-100"
-                />
+                  className="flex flex-col items-center gap-2 px-1 py-3"
+                >
+                  <div className="h-14 w-14 animate-pulse rounded-full bg-neutral-100" />
+                  <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
+                </div>
               ))}
             </div>
           }
