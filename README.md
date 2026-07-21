@@ -24,8 +24,11 @@ cp .env.example .env
 # 同步 Drizzle Schema 到 Neon PostgreSQL 資料庫
 pnpm --filter @repo/db run push
 
-# 寫入預設商品、分類資料與管理員帳號 (devince1105@gmail.com / Admin@12345)
+# 寫入預設商品與分類資料
 pnpm --filter @repo/db run seed
+
+# 建立管理員帳號（帳密由 .env 的 ADMIN_EMAIL / ADMIN_PASSWORD 指定，請務必設定強密碼）
+pnpm --filter @repo/db run seed:admin
 ```
 
 ### 4. 啟動開發伺服器

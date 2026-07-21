@@ -11,6 +11,15 @@ import { users } from "./schema";
 const email = (process.env.ADMIN_EMAIL || "admin@nanguado.shop")
   .toLowerCase()
   .trim();
+
+// 正式環境必須明確指定 ADMIN_PASSWORD，避免沿用弱預設密碼造成後台被入侵。
+if (process.env.NODE_ENV === "production" && !process.env.ADMIN_PASSWORD) {
+  console.error(
+    "❌ 正式環境未設定 ADMIN_PASSWORD，拒絕以預設弱密碼建立管理員。請在 .env 設定強密碼後再執行。",
+  );
+  process.exit(1);
+}
+
 const password = process.env.ADMIN_PASSWORD || "Admin@12345";
 
 async function main() {
