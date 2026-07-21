@@ -9,6 +9,7 @@
     "push": "drizzle-kit push",
     "seed": "tsx src/seed.ts",
     "seed:admin": "tsx src/seed-admin.ts",
+    "backfill:payment-attempts": "tsx src/backfill-payment-attempts.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

@@ -7,6 +7,7 @@ import {
   getDb,
   orders,
   orderItems,
+  paymentAttempts,
   products,
   type SelectedVariant,
 } from "@repo/db";
@@ -214,10 +215,11 @@ export class OrdersService {
     const totalAmount = subtotal + shippingFee;
 
     // 建立訂單與明細
+    const merchantTradeNo = generateMerchantTradeNo();
     const [order] = await db
       .insert(orders)
       .values({
-        merchantTradeNo: generateMerchantTradeNo(),
+        merchantTradeNo,
         userId: dto.userId || null,
         totalAmount,
         status: "pending",
@@ -243,6 +245,12 @@ export class OrdersService {
         invoiceStatus: "unissued",
       })
       .returning();
+
+    // 記錄本次付款嘗試（保留每一組 MerchantTradeNo，供 Webhook 對帳查找）
+    await db.insert(paymentAttempts).values({
+      orderId: order.id,
+      merchantTradeNo,
+    });
 
     await db.insert(orderItems).values(
       lineItems.map((item) => {
@@ -531,7 +539,13 @@ export class OrdersService {
     // 產生全新的綠界 MerchantTradeNo 以防綠界重複交易錯誤
     const newMerchantTradeNo = generateMerchantTradeNo();
 
-    // 更新資料庫中的 MerchantTradeNo
+    // 記錄本次付款嘗試，保留舊編號的歷史，Webhook 才能對到帳（見 payment_attempts）
+    await db.insert(paymentAttempts).values({
+      orderId,
+      merchantTradeNo: newMerchantTradeNo,
+    });
+
+    // 更新訂單目前最新的 MerchantTradeNo（僅供顯示 / 產生付款表單使用）
     await db
       .update(orders)
       .set({

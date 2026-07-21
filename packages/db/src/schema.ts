@@ -151,6 +151,21 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ---------- 付款嘗試（記錄每次重新產生的綠界 MerchantTradeNo，避免覆寫導致無法對帳） ----------
+export const paymentAttempts = pgTable("payment_attempts", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  orderId: varchar("order_id", { length: 36 })
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  /** 該次付款嘗試使用的綠界 MerchantTradeNo */
+  merchantTradeNo: varchar("merchant_trade_no", { length: 20 })
+    .notNull()
+    .unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const orderItems = pgTable("order_items", {
   id: varchar("id", { length: 36 })
     .primaryKey()
@@ -229,6 +244,14 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
 export const ordersRelations = relations(orders, ({ many, one }) => ({
   items: many(orderItems),
   user: one(users, { fields: [orders.userId], references: [users.id] }),
+  paymentAttempts: many(paymentAttempts),
+}));
+
+export const paymentAttemptsRelations = relations(paymentAttempts, ({ one }) => ({
+  order: one(orders, {
+    fields: [paymentAttempts.orderId],
+    references: [orders.id],
+  }),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -341,3 +364,5 @@ export type Setting = typeof settings.$inferSelect;
 export type NewSetting = typeof settings.$inferInsert;
 export type Banner = typeof banners.$inferSelect;
 export type NewBanner = typeof banners.$inferInsert;
+export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
+export type NewPaymentAttempt = typeof paymentAttempts.$inferInsert;

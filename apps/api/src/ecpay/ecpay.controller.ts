@@ -1,6 +1,13 @@
 import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
-import { getDb, orders, products, type Order, type OrderItem } from "@repo/db";
+import {
+  getDb,
+  orders,
+  paymentAttempts,
+  products,
+  type Order,
+  type OrderItem,
+} from "@repo/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { EcpayPaymentService } from "./ecpay-payment.service";
 import { EcpayInvoiceService } from "./ecpay-invoice.service";
@@ -53,8 +60,19 @@ export class EcpayController {
     }
 
     const db = getDb();
+
+    // 透過 payment_attempts 對應訂單：即使訂單後續又重新產生了新的
+    // MerchantTradeNo（repay），舊編號仍查得到對應訂單，避免無法對帳。
+    const attempt = await db.query.paymentAttempts.findFirst({
+      where: eq(paymentAttempts.merchantTradeNo, merchantTradeNo),
+    });
+    if (!attempt) {
+      this.logger.warn(`找不到訂單（付款嘗試）${merchantTradeNo}`);
+      return "1|OK";
+    }
+
     const orderRecord = await db.query.orders.findFirst({
-      where: eq(orders.merchantTradeNo, merchantTradeNo),
+      where: eq(orders.id, attempt.orderId),
       with: { items: true },
     });
     if (!orderRecord) {
@@ -73,14 +91,11 @@ export class EcpayController {
         paidAt: payload.PaymentDate
           ? new Date(payload.PaymentDate)
           : new Date(),
+        // 同步為實際完成付款的那組編號，避免顯示與已重新產生的「最新」編號不一致
+        merchantTradeNo,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(orders.merchantTradeNo, merchantTradeNo),
-          ne(orders.status, "paid"),
-        ),
-      )
+      .where(and(eq(orders.id, orderRecord.id), ne(orders.status, "paid")))
       .returning({ id: orders.id });
 
     if (transitioned.length === 0) {
@@ -390,8 +405,16 @@ export class EcpayController {
     }
 
     const db = getDb();
+    const attempt = await db.query.paymentAttempts.findFirst({
+      where: eq(paymentAttempts.merchantTradeNo, merchantTradeNo),
+    });
+    if (!attempt) {
+      this.logger.warn(`物流通知：找不到對應的訂單（付款嘗試）${merchantTradeNo}`);
+      return "1|OK";
+    }
+
     const orderRecord = await db.query.orders.findFirst({
-      where: eq(orders.merchantTradeNo, merchantTradeNo),
+      where: eq(orders.id, attempt.orderId),
       with: { items: true },
     });
 
