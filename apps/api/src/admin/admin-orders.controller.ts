@@ -7,9 +7,12 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import { OrdersService } from "../orders/orders.service";
 
+@ApiTags("Admin - Orders")
+@ApiBearerAuth()
 @Controller("admin/orders")
 @UseGuards(AdminGuard)
 export class AdminOrdersController {

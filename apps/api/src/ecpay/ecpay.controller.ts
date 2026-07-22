@@ -1,5 +1,6 @@
 import { Body, Controller, Header, Logger, Post } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
+import { ApiTags } from "@nestjs/swagger";
 import {
   getDb,
   orders,
@@ -14,6 +15,7 @@ import { EcpayInvoiceService } from "./ecpay-invoice.service";
 import { EcpayLogisticsService } from "./ecpay-logistics.service";
 import { MailService } from "../mail/mail.service";
 
+@ApiTags("ECPay Webhooks")
 @SkipThrottle()
 @Controller("ecpay")
 export class EcpayController {

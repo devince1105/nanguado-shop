@@ -7,6 +7,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
 import { CurrentUser } from "./current-user.decorator";
@@ -21,6 +22,7 @@ import {
   GoogleLoginDto,
 } from "./dto/auth-others.dto";
 
+@ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -59,12 +61,14 @@ export class AuthController {
 
   @Get("me")
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   getMe(@CurrentUser() user: { userId: string }) {
     return this.authService.getMe(user.userId);
   }
 
   @Post("change-password")
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   changePassword(
     @CurrentUser() user: { userId: string },
@@ -81,6 +85,7 @@ export class AuthController {
 
   @Patch("profile")
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   updateProfile(
     @CurrentUser() user: { userId: string },
     @Body() body: UpdateProfileDto,

@@ -1,8 +1,11 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import { getDb, orders, products, users } from "@repo/db";
 import { and, count, eq, gte, lte, sum } from "drizzle-orm";
 
+@ApiTags("Admin - Stats")
+@ApiBearerAuth()
 @Controller("admin/stats")
 @UseGuards(AdminGuard)
 export class AdminStatsController {

@@ -9,12 +9,15 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import {
   ProductsService,
   type CreateProductDto,
 } from "../products/products.service";
 
+@ApiTags("Admin - Products")
+@ApiBearerAuth()
 @Controller("admin/products")
 @UseGuards(AdminGuard)
 export class AdminProductsController {
