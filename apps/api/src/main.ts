@@ -48,21 +48,27 @@ async function bootstrap() {
   });
 
   // Swagger / OpenAPI 文件（互動式介面，可直接在網頁測試 API，含 JWT 授權）
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("南瓜多商鋪 API")
-    .setDescription("南瓜多商鋪後端 RESTful API 文件")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup("docs", app, swaggerDocument, {
-    useGlobalPrefix: false,
-  });
+  // 僅在非正式環境開放：正式站不對外公開完整 API 結構，避免成為攻擊偵查地圖。
+  const swaggerEnabled = process.env.NODE_ENV !== "production";
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle("南瓜多商鋪 API")
+      .setDescription("南瓜多商鋪後端 RESTful API 文件")
+      .setVersion("1.0")
+      .addBearerAuth()
+      .build();
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup("docs", app, swaggerDocument, {
+      useGlobalPrefix: false,
+    });
+  }
 
   const port = Number(process.env.PORT) || 4000;
   await app.listen(port);
   console.log(`🎃 南瓜多 API 已啟動：http://localhost:${port}/api/v1`);
-  console.log(`📖 API 文件（Swagger）：http://localhost:${port}/docs`);
+  if (swaggerEnabled) {
+    console.log(`📖 API 文件（Swagger）：http://localhost:${port}/docs`);
+  }
 }
 
 bootstrap();
