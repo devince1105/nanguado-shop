@@ -8,9 +8,11 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import { BannersService, type BannerDto } from "./banners.service";
 
+@ApiTags("Banners")
 @Controller("banners")
 export class BannersController {
   constructor(private readonly bannersService: BannersService) {}
@@ -22,6 +24,8 @@ export class BannersController {
   }
 }
 
+@ApiTags("Admin - Banners")
+@ApiBearerAuth()
 @Controller("admin/banners")
 @UseGuards(AdminGuard)
 export class AdminBannersController {

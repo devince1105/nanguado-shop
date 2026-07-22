@@ -1,4 +1,5 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 
 /**
@@ -7,6 +8,8 @@ import { AdminGuard } from "../auth/admin.guard";
  */
 const PROD_DB_ENDPOINTS = ["ep-noisy-hall-aobrkw7a"];
 
+@ApiTags("Admin - Environment")
+@ApiBearerAuth()
 @Controller("admin/environment")
 @UseGuards(AdminGuard)
 export class AdminEnvironmentController {

@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Patch, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import { SettingsService, type SiteSettings } from "./settings.service";
 
+@ApiTags("Settings")
 @Controller("settings")
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
@@ -13,6 +15,8 @@ export class SettingsController {
   }
 }
 
+@ApiTags("Admin - Settings")
+@ApiBearerAuth()
 @Controller("admin/settings")
 @UseGuards(AdminGuard)
 export class AdminSettingsController {

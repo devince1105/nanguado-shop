@@ -12,9 +12,12 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import { MediaService, type UploadedImage } from "./media.service";
 
+@ApiTags("Admin - Media")
+@ApiBearerAuth()
 @Controller("admin/media")
 @UseGuards(AdminGuard)
 export class MediaController {

@@ -8,10 +8,13 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AdminUsersService } from "./admin-users.service";
 
+@ApiTags("Admin - Users")
+@ApiBearerAuth()
 @Controller("admin/users")
 @UseGuards(AdminGuard)
 export class AdminUsersController {

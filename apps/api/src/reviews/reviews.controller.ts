@@ -6,6 +6,7 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import {
   ReviewsService,
   type CreateReviewDto,
@@ -13,6 +14,7 @@ import {
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 
+@ApiTags("Reviews")
 @Controller("products/:slug/reviews")
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
@@ -24,6 +26,7 @@ export class ReviewsController {
 
   @Get("eligibility")
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   eligibility(
     @Param("slug") slug: string,
     @CurrentUser() user: { userId: string },
@@ -33,6 +36,7 @@ export class ReviewsController {
 
   @Post()
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   create(
     @Param("slug") slug: string,
     @Body() dto: CreateReviewDto,

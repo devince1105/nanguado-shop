@@ -9,6 +9,7 @@ import {
   Query,
   Req,
 } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
 import { CartService, type AddCartItemDto } from "./cart.service";
 import { getUserIdFromAuthHeader } from "../auth/jwt.util";
 
@@ -16,6 +17,7 @@ function getUserIdFromRequest(req: any): string | undefined {
   return getUserIdFromAuthHeader(req.headers.authorization);
 }
 
+@ApiTags("Cart")
 @Controller("cart")
 export class CartController {
   constructor(private readonly cartService: CartService) {}

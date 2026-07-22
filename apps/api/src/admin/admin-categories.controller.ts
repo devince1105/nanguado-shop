@@ -8,12 +8,15 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/admin.guard";
 import {
   CategoriesService,
   type CategoryDto,
 } from "../categories/categories.service";
 
+@ApiTags("Admin - Categories")
+@ApiBearerAuth()
 @Controller("admin/categories")
 @UseGuards(AdminGuard)
 export class AdminCategoriesController {
